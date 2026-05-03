@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>VQ比 — REDFORDメソッド</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#080C10;--surface:#0D1117;--border:#1C2530;
+    --green:#00FF88;--yellow:#FFD000;--red:#FF3A3A;--blue:#00AAFF;
+    --dim:#3A4A5A;--text:#C8D8E8;
+    --mono:'Share Tech Mono',monospace;--sans:'Noto Sans JP',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100dvh;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,136,0.012) 2px,rgba(0,255,136,0.012) 4px);pointer-events:none;z-index:999;}
+  .header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:100;}
+  .header-title{font-family:var(--mono);font-size:13px;letter-spacing:.2em;color:var(--green);text-shadow:0 0 12px rgba(0,255,136,.5);}
+  .header-sub{font-size:9px;color:var(--dim);letter-spacing:.15em;margin-top:2px;}
+  .refresh-btn{background:none;border:1px solid var(--border);color:var(--dim);font-size:18px;width:36px;height:36px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+  .refresh-btn:active{background:var(--border);color:var(--green);}
+  .refresh-btn.spinning{animation:spin .6s linear;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .ticker-bar{display:flex;gap:6px;padding:8px 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;border-bottom:1px solid var(--border);background:rgba(13,17,23,.95);}
+  .ticker-bar::-webkit-scrollbar{display:none;}
+  .ticker-chip{flex-shrink:0;padding:5px 12px;border-radius:20px;border:1px solid var(--border);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .18s;white-space:nowrap;color:var(--dim);background:var(--surface);}
+  .ticker-chip.active{border-color:var(--green);color:var(--green);background:rgba(0,255,136,.07);box-shadow:0 0 10px rgba(0,255,136,.15);}
+  .custom-row{display:flex;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--surface);}
+  .custom-input{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;padding:8px 12px;border-radius:8px;outline:none;letter-spacing:.1em;text-transform:uppercase;}
+  .custom-input:focus{border-color:var(--blue);}
+  .custom-input::placeholder{color:var(--dim);}
+  .search-btn{background:var(--blue);color:#000;border:none;border-radius:8px;padding:8px 16px;font-family:var(--mono);font-size:12px;cursor:pointer;font-weight:bold;letter-spacing:.05em;transition:opacity .2s;}
+  .search-btn:active{opacity:.7;}
+  .main-card{margin:12px;background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;position:relative;}
+  .card-header{padding:14px 16px 10px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;}
+  .symbol-name{font-family:var(--mono);font-size:18px;font-weight:bold;color:var(--text);letter-spacing:.05em;}
+  .symbol-price{font-family:var(--mono);font-size:13px;color:var(--dim);margin-top:3px;}
+  .interval-badge{background:var(--border);color:var(--dim);font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px;letter-spacing:.1em;}
+  .vq-display{padding:20px 16px 16px;display:flex;align-items:flex-end;gap:12px;}
+  .vq-number{font-family:var(--mono);font-size:56px;font-weight:bold;line-height:1;transition:color .4s;text-shadow:0 0 30px currentColor;}
+  .vq-label-stack{display:flex;flex-direction:column;gap:4px;padding-bottom:6px;}
+  .vq-label{font-size:10px;color:var(--dim);letter-spacing:.15em;}
+  .vq-judgment{font-family:var(--mono);font-size:12px;letter-spacing:.08em;padding:4px 10px;border-radius:4px;border:1px solid currentColor;}
+  .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border-top:1px solid var(--border);}
+  .stat-cell{background:var(--surface);padding:12px 14px;}
+  .stat-label{font-size:9px;color:var(--dim);letter-spacing:.15em;margin-bottom:4px;}
+  .stat-value{font-family:var(--mono);font-size:15px;}
+  .stat-value.bull{color:var(--blue);}
+  .stat-value.bear{color:var(--red);}
+  .stat-value.ratio{color:var(--text);}
+  .gauge-section{padding:14px 16px;border-top:1px solid var(--border);}
+  .gauge-label{font-size:9px;color:var(--dim);letter-spacing:.15em;margin-bottom:8px;}
+  .gauge-track{height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+  .gauge-fill{height:100%;border-radius:3px;transition:width .6s cubic-bezier(.4,0,.2,1),background .4s;}
+  .gauge-ticks{display:flex;justify-content:space-between;margin-top:4px;}
+  .gauge-tick{font-family:var(--mono);font-size:9px;color:var(--dim);}
+  .chart-section{padding:14px 16px 16px;border-top:1px solid var(--border);}
+  .chart-label{font-size:9px;color:var(--dim);letter-spacing:.15em;margin-bottom:10px;}
+  canvas#vqChart{width:100%;height:80px;display:block;}
+  .interval-row{display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .interval-row::-webkit-scrollbar{display:none;}
+  .interval-btn{flex-shrink:0;padding:5px 12px;border-radius:6px;border:1px solid var(--border);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .18s;color:var(--dim);background:var(--bg);}
+  .interval-btn.active{border-color:var(--yellow);color:var(--yellow);background:rgba(255,208,0,.07);}
+  .status-bar{display:flex;align-items:center;gap:8px;padding:8px 16px;font-size:10px;color:var(--dim);font-family:var(--mono);border-top:1px solid var(--border);margin:0 12px 12px;background:var(--surface);border-radius:0 0 16px 16px;}
+  .status-dot{width:6px;height:6px;border-radius:50%;background:var(--dim);flex-shrink:0;}
+  .status-dot.live{background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+  .loading{position:absolute;inset:0;background:rgba(8,12,16,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;border-radius:16px;z-index:10;}
+  .loading-ring{width:36px;height:36px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;}
+  .loading-text{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.15em;}
+  .note-box{margin:0 12px 16px;padding:10px 14px;background:rgba(0,170,255,.05);border:1px solid rgba(0,170,255,.15);border-radius:10px;font-size:10px;color:var(--dim);line-height:1.6;letter-spacing:.03em;}
+  .note-box span{color:var(--blue);}
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <div class="header-title">VQ RATIO</div>
+    <div class="header-sub">REDFORDメソッド — 出来高クオリティ</div>
+  </div>
+  <button class="refresh-btn" id="refreshBtn" onclick="refresh()">↻</button>
+</div>
+<div class="interval-row">
+  <button class="interval-btn active" data-interval="5m" onclick="setInterval_('5m',this)">5分</button>
+  <button class="interval-btn" data-interval="15m" onclick="setInterval_('15m',this)">15分</button>
+  <button class="interval-btn" data-interval="1h" onclick="setInterval_('1h',this)">1時間</button>
+  <button class="interval-btn" data-interval="4h" onclick="setInterval_('4h',this)">4時間</button>
+  <button class="interval-btn" data-interval="1d" onclick="setInterval_('1d',this)">日足</button>
+</div>
+<div class="ticker-bar">
+  <div class="ticker-chip active" data-symbol="BTCUSDT" onclick="setSymbol('BTCUSDT',this)">BTC/USDT</div>
+  <div class="ticker-chip" data-symbol="ETHUSDT" onclick="setSymbol('ETHUSDT',this)">ETH/USDT</div>
+  <div class="ticker-chip" data-symbol="SOLUSDT" onclick="setSymbol('SOLUSDT',this)">SOL/USDT</div>
+</div>
+<div class="custom-row">
+  <input class="custom-input" id="customInput" placeholder="銘柄入力 例: SOL → SOLUSDT" maxlength="20" onkeydown="if(event.key==='Enter')searchCustom()">
+  <button class="search-btn" onclick="searchCustom()">検索</button>
+</div>
+<div class="main-card" id="mainCard">
+  <div class="loading" id="loadingOverlay">
+    <div class="loading-ring"></div>
+    <div class="loading-text">データ取得中...</div>
+  </div>
+  <div class="card-header">
+    <div>
+      <div class="symbol-name" id="symbolName">BTCUSDT</div>
+      <div class="symbol-price" id="symbolPrice">$——</div>
+    </div>
+    <div class="interval-badge" id="intervalBadge">5分足</div>
+  </div>
+  <div class="vq-display">
+    <div class="vq-number" id="vqNumber">—</div>
+    <div class="vq-label-stack">
+      <div class="vq-label">VQ比</div>
+      <div class="vq-judgment" id="vqJudgment" style="color:var(--dim)">読み込み中</div>
+    </div>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-cell"><div class="stat-label">上昇足 平均出来高</div><div class="stat-value bull" id="bullVol">——</div></div>
+    <div class="stat-cell"><div class="stat-label">下落足 平均出来高</div><div class="stat-value bear" id="bearVol">——</div></div>
+    <div class="stat-cell"><div class="stat-label">陽線本数 / 計算期間</div><div class="stat-value ratio" id="bullCount">——</div></div>
+    <div class="stat-cell"><div class="stat-label">最終更新</div><div class="stat-value ratio" id="lastUpdate">——</div></div>
+  </div>
+  <div class="gauge-section">
+    <div class="gauge-label">VQ比 ゲージ（0〜5+）</div>
+    <div class="gauge-track"><div class="gauge-fill" id="gaugeFill" style="width:0%;background:var(--dim)"></div></div>
+    <div class="gauge-ticks">
+      <span class="gauge-tick">0</span><span class="gauge-tick">1</span><span class="gauge-tick">2</span>
+      <span class="gauge-tick">3</span><span class="gauge-tick">4</span><span class="gauge-tick">5+</span>
+    </div>
+  </div>
+  <div class="chart-section">
+    <div class="chart-label">VQ比 履歴（直近50本）</div>
+    <canvas id="vqChart"></canvas>
+  </div>
+</div>
+<div class="status-bar">
+  <div class="status-dot" id="statusDot"></div>
+  <span id="statusText">待機中</span>
+</div>
+<div class="note-box">
+  <span>※ Binance APIを使用。</span>株式（AXTI等）はBinanceに上場していないため取得不可。<br>
+  計算期間：直近<span>50本</span>。上昇足平均÷下落足平均 = VQ比。<br>
+  <span>VQ≥3.0</span>：強いエントリー根拠　<span>VQ≥2.0</span>：検討可　<span>VQ&lt;1.0</span>：不可
+</div>
+<script>
+let currentSymbol='BTCUSDT',currentInterval='5m',autoRefreshTimer=null,vqHistory=[];
+const LOOKBACK=50;
+const intervalLabels={'5m':'5分足','15m':'15分足','1h':'1時間足','4h':'4時間足','1d':'日足'};
+
+async function fetchKlines(symbol,interval,limit=LOOKBACK){
+  const url=`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+  const res=await fetch(url);
+  if(!res.ok)throw new Error(`HTTP ${res.status}`);
+  return await res.json();
+}
+
+function calcVQ(klines){
+  let bullVols=[],bearVols=[],lastClose=null;
+  klines.forEach(k=>{
+    const open=parseFloat(k[1]),close=parseFloat(k[4]),vol=parseFloat(k[5]);
+    lastClose=close;
+    if(close>open)bullVols.push(vol);
+    else if(close<open)bearVols.push(vol);
+  });
+  const avgBull=bullVols.length?bullVols.reduce((a,b)=>a+b,0)/bullVols.length:0;
+  const avgBear=bearVols.length?bearVols.reduce((a,b)=>a+b,0)/bearVols.length:1;
+  return{vq:avgBear>0?avgBull/avgBear:0,avgBull,avgBear,bullCount:bullVols.length,totalBars:klines.length,lastClose};
+}
+
+function fmtVol(v){
+  if(v>=1e9)return(v/1e9).toFixed(2)+'B';
+  if(v>=1e6)return(v/1e6).toFixed(2)+'M';
+  if(v>=1e3)return(v/1e3).toFixed(1)+'K';
+  return v.toFixed(0);
+}
+
+function getJudgment(vq){
+  if(vq>=3.0)return{text:'強いエントリー根拠',color:'var(--green)'};
+  if(vq>=2.0)return{text:'エントリー検討可',color:'var(--yellow)'};
+  if(vq>=1.0)return{text:'様子見',color:'var(--dim)'};
+  return{text:'エントリー不可',color:'var(--red)'};
+}
+
+function drawChart(history){
+  const canvas=document.getElementById('vqChart');
+  const dpr=window.devicePixelRatio||1,w=canvas.offsetWidth,h=80;
+  canvas.width=w*dpr;canvas.height=h*dpr;
+  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+  if(history.length<2)return;
+  const max=Math.max(...history,4),min=0,range=max-min||1;
+  ctx.clearRect(0,0,w,h);
+  [1,2,3].forEach(t=>{
+    const y=h-((t-min)/range)*h;
+    ctx.strokeStyle=t===3?'rgba(0,255,136,.25)':t===2?'rgba(255,208,0,.2)':'rgba(255,255,255,.1)';
+    ctx.lineWidth=1;ctx.setLineDash([3,3]);
+    ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();
+  });
+  ctx.setLineDash([]);
+  const step=w/(history.length-1);
+  ctx.beginPath();
+  history.forEach((v,i)=>{
+    const x=i*step,y=h-((v-min)/range)*(h-8)-4;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  const lx=(history.length-1)*step;
+  ctx.lineTo(lx,h);ctx.lineTo(0,h);ctx.closePath();
+  const grad=ctx.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0,'rgba(0,255,136,.18)');grad.addColorStop(1,'rgba(0,255,136,0)');
+  ctx.fillStyle=grad;ctx.fill();
+  ctx.beginPath();
+  history.forEach((v,i)=>{
+    const x=i*step,y=h-((v-min)/range)*(h-8)-4;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle='rgba(0,255,136,.8)';ctx.lineWidth=1.5;ctx.stroke();
+  const lv=history[history.length-1],ly=h-((lv-min)/range)*(h-8)-4;
+  ctx.beginPath();ctx.arc(lx,ly,4,0,Math.PI*2);
+  ctx.fillStyle=getJudgment(lv).color;ctx.fill();
+}
+
+async function updateData(){
+  setStatus('loading');
+  try{
+    const klines=await fetchKlines(currentSymbol,currentInterval,LOOKBACK);
+    const result=calcVQ(klines);
+    vqHistory.push(result.vq);
+    if(vqHistory.length>50)vqHistory.shift();
+    const j=getJudgment(result.vq);
+    document.getElementById('symbolName').textContent=currentSymbol;
+    document.getElementById('symbolPrice').textContent=result.lastClose?'$'+result.lastClose.toLocaleString('en-US',{maximumFractionDigits:2}):'—';
+    document.getElementById('intervalBadge').textContent=intervalLabels[currentInterval];
+    const vqEl=document.getElementById('vqNumber');
+    vqEl.textContent=result.vq.toFixed(2);vqEl.style.color=j.color;
+    const jEl=document.getElementById('vqJudgment');
+    jEl.textContent=j.text;jEl.style.color=j.color;
+    document.getElementById('bullVol').textContent=fmtVol(result.avgBull);
+    document.getElementById('bearVol').textContent=fmtVol(result.avgBear);
+    document.getElementById('bullCount').textContent=`${result.bullCount} / ${result.totalBars}本`;
+    document.getElementById('lastUpdate').textContent=new Date().toLocaleTimeString('ja-JP');
+    const pct=Math.min(result.vq/5*100,100);
+    const gf=document.getElementById('gaugeFill');
+    gf.style.width=pct+'%';gf.style.background=j.color;
+    drawChart(vqHistory);
+    setStatus('live');
+  }catch(e){setStatus('error',e.message);}
+  document.getElementById('loadingOverlay').style.display='none';
+}
+
+function setStatus(state,msg=''){
+  const dot=document.getElementById('statusDot'),text=document.getElementById('statusText');
+  if(state==='live'){dot.className='status-dot live';text.textContent='LIVE — Binance API';}
+  else if(state==='loading'){dot.className='status-dot';text.textContent='取得中...';}
+  else{dot.className='status-dot';dot.style.background='var(--red)';text.textContent='エラー: '+msg;}
+}
+
+function setSymbol(sym,el){
+  currentSymbol=sym;vqHistory=[];
+  document.querySelectorAll('.ticker-chip').forEach(c=>c.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.getElementById('loadingOverlay').style.display='flex';
+  updateData();
+}
+
+function setInterval_(iv,el){
+  currentInterval=iv;vqHistory=[];
+  document.querySelectorAll('.interval-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('loadingOverlay').style.display='flex';
+  updateData();
+}
+
+async function searchCustom(){
+  const raw=document.getElementById('customInput').value.trim().toUpperCase();
+  if(!raw)return;
+  const candidates=[raw,raw+'USDT',raw+'BUSD'];
+  let found=null;
+  for(const sym of candidates){
+    try{
+      const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=${sym}&interval=5m&limit=5`);
+      if(r.ok){found=sym;break;}
+    }catch{}
+  }
+  if(found){
+    const bar=document.querySelector('.ticker-bar');
+    const existing=bar.querySelector(`[data-symbol="${found}"]`);
+    if(!existing){
+      const chip=document.createElement('div');
+      chip.className='ticker-chip';chip.dataset.symbol=found;
+      chip.textContent=found.replace('USDT','')+'/USDT';
+      chip.onclick=()=>setSymbol(found,chip);
+      bar.appendChild(chip);
+    }
+    setSymbol(found,bar.querySelector(`[data-symbol="${found}"]`));
+    document.getElementById('customInput').value='';
+  }else{
+    alert(`"${raw}" はBinanceで見つかりませんでした。`);
+  }
+}
+
+function refresh(){
+  const btn=document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+  setTimeout(()=>btn.classList.remove('spinning'),600);
+  document.getElementById('loadingOverlay').style.display='flex';
+  updateData();
+}
+
+updateData();
+autoRefreshTimer=setInterval(updateData,60000);
+</script>
+</body>
+</html>
