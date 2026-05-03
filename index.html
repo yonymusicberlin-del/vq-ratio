@@ -4,313 +4,504 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>VQ比 — REDFORDメソッド</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg:#080C10;--surface:#0D1117;--border:#1C2530;
-    --green:#00FF88;--yellow:#FFD000;--red:#FF3A3A;--blue:#00AAFF;
-    --dim:#3A4A5A;--text:#C8D8E8;
-    --mono:'Share Tech Mono',monospace;--sans:'Noto Sans JP',sans-serif;
-  }
-  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100dvh;overflow-x:hidden;}
-  body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,136,0.012) 2px,rgba(0,255,136,0.012) 4px);pointer-events:none;z-index:999;}
-  .header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:100;}
-  .header-title{font-family:var(--mono);font-size:13px;letter-spacing:.2em;color:var(--green);text-shadow:0 0 12px rgba(0,255,136,.5);}
-  .header-sub{font-size:9px;color:var(--dim);letter-spacing:.15em;margin-top:2px;}
-  .refresh-btn{background:none;border:1px solid var(--border);color:var(--dim);font-size:18px;width:36px;height:36px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
-  .refresh-btn:active{background:var(--border);color:var(--green);}
-  .refresh-btn.spinning{animation:spin .6s linear;}
-  @keyframes spin{to{transform:rotate(360deg);}}
-  .ticker-bar{display:flex;gap:6px;padding:8px 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;border-bottom:1px solid var(--border);background:rgba(13,17,23,.95);}
-  .ticker-bar::-webkit-scrollbar{display:none;}
-  .ticker-chip{flex-shrink:0;padding:5px 12px;border-radius:20px;border:1px solid var(--border);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .18s;white-space:nowrap;color:var(--dim);background:var(--surface);}
-  .ticker-chip.active{border-color:var(--green);color:var(--green);background:rgba(0,255,136,.07);box-shadow:0 0 10px rgba(0,255,136,.15);}
-  .custom-row{display:flex;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--surface);}
-  .custom-input{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;padding:8px 12px;border-radius:8px;outline:none;letter-spacing:.1em;text-transform:uppercase;}
-  .custom-input:focus{border-color:var(--blue);}
-  .custom-input::placeholder{color:var(--dim);}
-  .search-btn{background:var(--blue);color:#000;border:none;border-radius:8px;padding:8px 16px;font-family:var(--mono);font-size:12px;cursor:pointer;font-weight:bold;letter-spacing:.05em;transition:opacity .2s;}
-  .search-btn:active{opacity:.7;}
-  .main-card{margin:12px;background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;position:relative;}
-  .card-header{padding:14px 16px 10px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;}
-  .symbol-name{font-family:var(--mono);font-size:18px;font-weight:bold;color:var(--text);letter-spacing:.05em;}
-  .symbol-price{font-family:var(--mono);font-size:13px;color:var(--dim);margin-top:3px;}
-  .interval-badge{background:var(--border);color:var(--dim);font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px;letter-spacing:.1em;}
-  .vq-display{padding:20px 16px 16px;display:flex;align-items:flex-end;gap:12px;}
-  .vq-number{font-family:var(--mono);font-size:56px;font-weight:bold;line-height:1;transition:color .4s;text-shadow:0 0 30px currentColor;}
-  .vq-label-stack{display:flex;flex-direction:column;gap:4px;padding-bottom:6px;}
-  .vq-label{font-size:10px;color:var(--dim);letter-spacing:.15em;}
-  .vq-judgment{font-family:var(--mono);font-size:12px;letter-spacing:.08em;padding:4px 10px;border-radius:4px;border:1px solid currentColor;}
-  .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border-top:1px solid var(--border);}
-  .stat-cell{background:var(--surface);padding:12px 14px;}
-  .stat-label{font-size:9px;color:var(--dim);letter-spacing:.15em;margin-bottom:4px;}
-  .stat-value{font-family:var(--mono);font-size:15px;}
-  .stat-value.bull{color:var(--blue);}
-  .stat-value.bear{color:var(--red);}
-  .stat-value.ratio{color:var(--text);}
-  .gauge-section{padding:14px 16px;border-top:1px solid var(--border);}
-  .gauge-label{font-size:9px;color:var(--dim);letter-spacing:.15em;margin-bottom:8px;}
-  .gauge-track{height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
-  .gauge-fill{height:100%;border-radius:3px;transition:width .6s cubic-bezier(.4,0,.2,1),background .4s;}
-  .gauge-ticks{display:flex;justify-content:space-between;margin-top:4px;}
-  .gauge-tick{font-family:var(--mono);font-size:9px;color:var(--dim);}
-  .chart-section{padding:14px 16px 16px;border-top:1px solid var(--border);}
-  .chart-label{font-size:9px;color:var(--dim);letter-spacing:.15em;margin-bottom:10px;}
-  canvas#vqChart{width:100%;height:80px;display:block;}
-  .interval-row{display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
-  .interval-row::-webkit-scrollbar{display:none;}
-  .interval-btn{flex-shrink:0;padding:5px 12px;border-radius:6px;border:1px solid var(--border);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .18s;color:var(--dim);background:var(--bg);}
-  .interval-btn.active{border-color:var(--yellow);color:var(--yellow);background:rgba(255,208,0,.07);}
-  .status-bar{display:flex;align-items:center;gap:8px;padding:8px 16px;font-size:10px;color:var(--dim);font-family:var(--mono);border-top:1px solid var(--border);margin:0 12px 12px;background:var(--surface);border-radius:0 0 16px 16px;}
-  .status-dot{width:6px;height:6px;border-radius:50%;background:var(--dim);flex-shrink:0;}
-  .status-dot.live{background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite;}
-  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
-  .loading{position:absolute;inset:0;background:rgba(8,12,16,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;border-radius:16px;z-index:10;}
-  .loading-ring{width:36px;height:36px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;}
-  .loading-text{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.15em;}
-  .note-box{margin:0 12px 16px;padding:10px 14px;background:rgba(0,170,255,.05);border:1px solid rgba(0,170,255,.15);border-radius:10px;font-size:10px;color:var(--dim);line-height:1.6;letter-spacing:.03em;}
-  .note-box span{color:var(--blue);}
+:root{
+  --bg:#060A0E;--surface:#0C1118;--border:#182028;
+  --green:#00FF88;--yellow:#FFD000;--red:#FF3A3A;--blue:#00AAFF;
+  --dim:#2A3A4A;--text:#B8CCE0;--text2:#5A7A9A;
+  --mono:'Share Tech Mono',monospace;--sans:'Noto Sans JP',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);overflow-x:hidden;padding-bottom:20px;}
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,255,136,0.006) 3px,rgba(0,255,136,0.006) 4px);pointer-events:none;z-index:9999;}
+
+/* ── Header ── */
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:50;}
+.hdr-left{display:flex;align-items:center;gap:10px;}
+.hdr-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 2s infinite;flex-shrink:0;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+.hdr-title{font-family:var(--mono);font-size:13px;letter-spacing:.25em;color:var(--green);}
+.hdr-sub{font-size:9px;color:var(--dim);letter-spacing:.12em;margin-top:1px;}
+.hdr-right{display:flex;gap:8px;align-items:center;}
+.hdr-btn{background:none;border:1px solid var(--border);color:var(--dim);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:.2s;}
+.hdr-btn:active{background:var(--border);color:var(--green);}
+.hdr-btn.spin{animation:spin .5s linear;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.live-badge{font-family:var(--mono);font-size:9px;color:var(--green);border:1px solid rgba(0,255,136,.3);padding:2px 7px;border-radius:4px;letter-spacing:.1em;}
+
+/* ── Controls ── */
+.coins{display:flex;gap:6px;padding:8px 12px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border);}
+.coins::-webkit-scrollbar{display:none;}
+.coin{flex-shrink:0;padding:5px 14px;border-radius:20px;border:1px solid var(--border);font-family:var(--mono);font-size:11px;cursor:pointer;color:var(--dim);background:var(--surface);transition:.15s;letter-spacing:.08em;}
+.coin.on{border-color:var(--green);color:var(--green);background:rgba(0,255,136,.06);box-shadow:0 0 10px rgba(0,255,136,.1);}
+.ivrow{display:flex;gap:6px;padding:8px 12px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border);}
+.ivrow::-webkit-scrollbar{display:none;}
+.ivbtn{flex-shrink:0;padding:4px 12px;border-radius:6px;border:1px solid var(--border);font-family:var(--mono);font-size:10px;cursor:pointer;color:var(--dim);background:var(--bg);transition:.15s;}
+.ivbtn.on{border-color:var(--yellow);color:var(--yellow);background:rgba(255,208,0,.06);}
+
+/* ── Stats row ── */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.stat{background:var(--surface);padding:10px 10px;}
+.stat-l{font-size:8px;color:var(--dim);letter-spacing:.1em;margin-bottom:3px;}
+.stat-v{font-family:var(--mono);font-size:13px;}
+.vq-col{color:var(--green);}
+.price-col{color:var(--blue);}
+.bull-col{color:#00AAFF;}
+.bear-col{color:var(--red);}
+
+/* ── Dual chart container ── */
+.chart-wrap{margin:10px;background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;position:relative;}
+
+.chart-header{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.chart-title{font-family:var(--mono);font-size:10px;letter-spacing:.15em;color:var(--text2);}
+.chart-legend{display:flex;gap:12px;}
+.leg{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;color:var(--dim);}
+.leg-dot{width:8px;height:2px;border-radius:1px;}
+
+/* chart area */
+.chart-area{padding:8px 0 0;position:relative;}
+canvas.dual{width:100%;display:block;}
+
+/* Y-axis labels */
+.yaxis-wrap{display:flex;}
+.yaxis-left{width:52px;flex-shrink:0;position:relative;}
+.yaxis-right{width:52px;flex-shrink:0;position:relative;}
+.canvas-wrap{flex:1;position:relative;}
+
+/* crosshair tooltip */
+.tooltip{position:absolute;background:rgba(12,17,24,.95);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:var(--mono);font-size:10px;pointer-events:none;z-index:10;min-width:120px;display:none;}
+.tooltip-time{color:var(--dim);font-size:8px;margin-bottom:4px;letter-spacing:.1em;}
+.tooltip-row{display:flex;justify-content:space-between;gap:12px;margin-bottom:2px;}
+.tooltip-label{color:var(--dim);}
+.tooltip-val{font-weight:bold;}
+
+/* judgment bar */
+.jbar{padding:10px 14px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.jbar-left{display:flex;align-items:center;gap:8px;}
+.jbar-vq{font-family:var(--mono);font-size:22px;font-weight:bold;text-shadow:0 0 20px currentColor;transition:color .4s;}
+.jbar-tag{font-family:var(--mono);font-size:11px;padding:3px 10px;border-radius:4px;border:1px solid currentColor;letter-spacing:.06em;}
+.jbar-right{text-align:right;}
+.jbar-price{font-family:var(--mono);font-size:16px;color:var(--blue);}
+.jbar-change{font-family:var(--mono);font-size:10px;margin-top:2px;}
+
+/* gauge */
+.gauge{padding:10px 14px;border-top:1px solid var(--border);}
+.gauge-track{height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.gauge-fill{height:100%;border-radius:2px;transition:width .7s cubic-bezier(.4,0,.2,1),background .4s;}
+.gauge-ticks{display:flex;justify-content:space-between;margin-top:4px;}
+.gauge-tick{font-family:var(--mono);font-size:8px;color:var(--dim);}
+
+/* status */
+.sbar{display:flex;align-items:center;gap:8px;padding:7px 16px;font-size:9px;color:var(--dim);font-family:var(--mono);border-top:1px solid var(--border);margin:0 10px;background:var(--surface);border-radius:0 0 16px 16px;}
+.sdot{width:5px;height:5px;border-radius:50%;background:var(--dim);flex-shrink:0;}
+.sdot.live{background:var(--green);box-shadow:0 0 5px var(--green);animation:blink 2s infinite;}
+.sdot.err{background:var(--red);}
+
+/* loading */
+.overlay{position:absolute;inset:0;background:rgba(6,10,14,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:20;border-radius:16px;}
+.overlay.hide{display:none;}
+.ring{width:36px;height:36px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;}
+.ov-txt{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.12em;}
 </style>
 </head>
 <body>
-<div class="header">
-  <div>
-    <div class="header-title">VQ RATIO</div>
-    <div class="header-sub">REDFORDメソッド — 出来高クオリティ</div>
-  </div>
-  <button class="refresh-btn" id="refreshBtn" onclick="refresh()">↻</button>
-</div>
-<div class="interval-row">
-  <button class="interval-btn active" data-interval="5m" onclick="setInterval_('5m',this)">5分</button>
-  <button class="interval-btn" data-interval="15m" onclick="setInterval_('15m',this)">15分</button>
-  <button class="interval-btn" data-interval="1h" onclick="setInterval_('1h',this)">1時間</button>
-  <button class="interval-btn" data-interval="4h" onclick="setInterval_('4h',this)">4時間</button>
-  <button class="interval-btn" data-interval="1d" onclick="setInterval_('1d',this)">日足</button>
-</div>
-<div class="ticker-bar">
-  <div class="ticker-chip active" data-symbol="BTCUSDT" onclick="setSymbol('BTCUSDT',this)">BTC/USDT</div>
-  <div class="ticker-chip" data-symbol="ETHUSDT" onclick="setSymbol('ETHUSDT',this)">ETH/USDT</div>
-  <div class="ticker-chip" data-symbol="SOLUSDT" onclick="setSymbol('SOLUSDT',this)">SOL/USDT</div>
-</div>
-<div class="custom-row">
-  <input class="custom-input" id="customInput" placeholder="銘柄入力 例: SOL → SOLUSDT" maxlength="20" onkeydown="if(event.key==='Enter')searchCustom()">
-  <button class="search-btn" onclick="searchCustom()">検索</button>
-</div>
-<div class="main-card" id="mainCard">
-  <div class="loading" id="loadingOverlay">
-    <div class="loading-ring"></div>
-    <div class="loading-text">データ取得中...</div>
-  </div>
-  <div class="card-header">
+
+<div class="hdr">
+  <div class="hdr-left">
+    <div class="hdr-dot"></div>
     <div>
-      <div class="symbol-name" id="symbolName">BTCUSDT</div>
-      <div class="symbol-price" id="symbolPrice">$——</div>
-    </div>
-    <div class="interval-badge" id="intervalBadge">5分足</div>
-  </div>
-  <div class="vq-display">
-    <div class="vq-number" id="vqNumber">—</div>
-    <div class="vq-label-stack">
-      <div class="vq-label">VQ比</div>
-      <div class="vq-judgment" id="vqJudgment" style="color:var(--dim)">読み込み中</div>
+      <div class="hdr-title">VQ RATIO</div>
+      <div class="hdr-sub">REDFORDメソッド — Bybit API</div>
     </div>
   </div>
-  <div class="stats-grid">
-    <div class="stat-cell"><div class="stat-label">上昇足 平均出来高</div><div class="stat-value bull" id="bullVol">——</div></div>
-    <div class="stat-cell"><div class="stat-label">下落足 平均出来高</div><div class="stat-value bear" id="bearVol">——</div></div>
-    <div class="stat-cell"><div class="stat-label">陽線本数 / 計算期間</div><div class="stat-value ratio" id="bullCount">——</div></div>
-    <div class="stat-cell"><div class="stat-label">最終更新</div><div class="stat-value ratio" id="lastUpdate">——</div></div>
+  <div class="hdr-right">
+    <span class="live-badge" id="liveBadge">●LIVE</span>
+    <button class="hdr-btn" id="rfBtn" onclick="doRefresh()">↻</button>
   </div>
-  <div class="gauge-section">
-    <div class="gauge-label">VQ比 ゲージ（0〜5+）</div>
-    <div class="gauge-track"><div class="gauge-fill" id="gaugeFill" style="width:0%;background:var(--dim)"></div></div>
+</div>
+
+<div class="coins">
+  <div class="coin on" data-sym="BTCUSDT" data-label="BTC" onclick="setCoin(this)">BTC</div>
+  <div class="coin" data-sym="ETHUSDT" data-label="ETH" onclick="setCoin(this)">ETH</div>
+  <div class="coin" data-sym="SOLUSDT" data-label="SOL" onclick="setCoin(this)">SOL</div>
+  <div class="coin" data-sym="XRPUSDT" data-label="XRP" onclick="setCoin(this)">XRP</div>
+  <div class="coin" data-sym="SUIUSDT" data-label="SUI" onclick="setCoin(this)">SUI</div>
+</div>
+
+<div class="ivrow">
+  <button class="ivbtn on" data-iv="5m" data-limit="60" onclick="setIv(this)">5分</button>
+  <button class="ivbtn" data-iv="15m" data-limit="60" onclick="setIv(this)">15分</button>
+  <button class="ivbtn" data-iv="1h" data-limit="48" onclick="setIv(this)">1時間</button>
+  <button class="ivbtn" data-iv="4h" data-limit="42" onclick="setIv(this)">4時間</button>
+  <button class="ivbtn" data-iv="1d" data-limit="30" onclick="setIv(this)">日足</button>
+</div>
+
+<!-- Stats -->
+<div class="stats">
+  <div class="stat"><div class="stat-l">VQ比</div><div class="stat-v vq-col" id="sVQ">—</div></div>
+  <div class="stat"><div class="stat-l">BTC価格</div><div class="stat-v price-col" id="sPrice">—</div></div>
+  <div class="stat"><div class="stat-l">上昇足出来高</div><div class="stat-v bull-col" id="sBull">—</div></div>
+  <div class="stat"><div class="stat-l">下落足出来高</div><div class="stat-v bear-col" id="sBear">—</div></div>
+</div>
+
+<!-- Dual Chart -->
+<div class="chart-wrap" id="chartWrap">
+  <div class="overlay" id="ov">
+    <div class="ring"></div>
+    <div class="ov-txt" id="ovTxt">Binance API 取得中...</div>
+  </div>
+
+  <div class="chart-header">
+    <div class="chart-title">VQ比 ＋ 価格 チャート</div>
+    <div class="chart-legend">
+      <div class="leg"><div class="leg-dot" style="background:var(--green)"></div>VQ比</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--blue)"></div>価格</div>
+    </div>
+  </div>
+
+  <div class="chart-area">
+    <canvas id="dualChart"></canvas>
+  </div>
+
+  <!-- Judgment + price -->
+  <div class="jbar">
+    <div class="jbar-left">
+      <div class="jbar-vq" id="jVQ" style="color:var(--dim)">—</div>
+      <div class="jbar-tag" id="jTag" style="color:var(--dim)">読み込み中</div>
+    </div>
+    <div class="jbar-right">
+      <div class="jbar-price" id="jPrice">$——</div>
+      <div class="jbar-change" id="jChange" style="color:var(--dim)">——</div>
+    </div>
+  </div>
+
+  <!-- Gauge -->
+  <div class="gauge">
+    <div class="gauge-track"><div class="gauge-fill" id="gf" style="width:0%;background:var(--dim)"></div></div>
     <div class="gauge-ticks">
-      <span class="gauge-tick">0</span><span class="gauge-tick">1</span><span class="gauge-tick">2</span>
-      <span class="gauge-tick">3</span><span class="gauge-tick">4</span><span class="gauge-tick">5+</span>
+      <span class="gauge-tick">0</span><span class="gauge-tick">1</span>
+      <span class="gauge-tick">2</span><span class="gauge-tick">3</span>
+      <span class="gauge-tick">4</span><span class="gauge-tick">5+</span>
     </div>
   </div>
-  <div class="chart-section">
-    <div class="chart-label">VQ比 履歴（直近50本）</div>
-    <canvas id="vqChart"></canvas>
+
+  <div class="sbar" style="margin:0;border-radius:0 0 16px 16px;">
+    <div class="sdot" id="sdot"></div>
+    <span id="stxt">初期化中...</span>
   </div>
 </div>
-<div class="status-bar">
-  <div class="status-dot" id="statusDot"></div>
-  <span id="statusText">待機中</span>
-</div>
-<div class="note-box">
-  <span>※ Binance APIを使用。</span>株式（AXTI等）はBinanceに上場していないため取得不可。<br>
-  計算期間：直近<span>50本</span>。上昇足平均÷下落足平均 = VQ比。<br>
-  <span>VQ≥3.0</span>：強いエントリー根拠　<span>VQ≥2.0</span>：検討可　<span>VQ&lt;1.0</span>：不可
-</div>
+
 <script>
-let currentSymbol='BTCUSDT',currentInterval='5m',autoRefreshTimer=null,vqHistory=[];
-const LOOKBACK=50;
-const intervalLabels={'5m':'5分足','15m':'15分足','1h':'1時間足','4h':'4時間足','1d':'日足'};
+// ── State ──
+let sym = 'BTCUSDT', symLabel = 'BTC';
+let interval = '5m', limit = 60;
+let candleData = []; // {ts, open, high, low, close, volume}
+let vqSeries = [];   // rolling VQ per candle
+let autoTimer = null;
+const ROLLING = 20;  // rolling window for VQ
 
-async function fetchKlines(symbol,interval,limit=LOOKBACK){
-  const url=`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
-  const res=await fetch(url);
-  if(!res.ok)throw new Error(`HTTP ${res.status}`);
-  return await res.json();
+// ── Helpers ──
+function judge(v){
+  if(v>=3.0)return{text:'強いエントリー根拠',col:'var(--green)'};
+  if(v>=2.0)return{text:'エントリー検討可',  col:'var(--yellow)'};
+  if(v>=1.0)return{text:'様子見',            col:'var(--dim)'};
+  return          {text:'エントリー不可',    col:'var(--red)'};
 }
-
-function calcVQ(klines){
-  let bullVols=[],bearVols=[],lastClose=null;
-  klines.forEach(k=>{
-    const open=parseFloat(k[1]),close=parseFloat(k[4]),vol=parseFloat(k[5]);
-    lastClose=close;
-    if(close>open)bullVols.push(vol);
-    else if(close<open)bearVols.push(vol);
-  });
-  const avgBull=bullVols.length?bullVols.reduce((a,b)=>a+b,0)/bullVols.length:0;
-  const avgBear=bearVols.length?bearVols.reduce((a,b)=>a+b,0)/bearVols.length:1;
-  return{vq:avgBear>0?avgBull/avgBear:0,avgBull,avgBear,bullCount:bullVols.length,totalBars:klines.length,lastClose};
-}
-
-function fmtVol(v){
+function fv(v){
+  if(!v||v<=0)return'——';
   if(v>=1e9)return(v/1e9).toFixed(2)+'B';
   if(v>=1e6)return(v/1e6).toFixed(2)+'M';
   if(v>=1e3)return(v/1e3).toFixed(1)+'K';
   return v.toFixed(0);
 }
-
-function getJudgment(vq){
-  if(vq>=3.0)return{text:'強いエントリー根拠',color:'var(--green)'};
-  if(vq>=2.0)return{text:'エントリー検討可',color:'var(--yellow)'};
-  if(vq>=1.0)return{text:'様子見',color:'var(--dim)'};
-  return{text:'エントリー不可',color:'var(--red)'};
+function fp(v){
+  if(!v)return'$——';
+  if(v>=1000)return'$'+Math.round(v).toLocaleString('en-US');
+  return'$'+v.toFixed(4);
+}
+function ft(ts){
+  const d=new Date(ts);
+  return(d.getMonth()+1)+'/'+d.getDate()+' '+d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
 }
 
-function drawChart(history){
-  const canvas=document.getElementById('vqChart');
-  const dpr=window.devicePixelRatio||1,w=canvas.offsetWidth,h=80;
-  canvas.width=w*dpr;canvas.height=h*dpr;
-  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
-  if(history.length<2)return;
-  const max=Math.max(...history,4),min=0,range=max-min||1;
-  ctx.clearRect(0,0,w,h);
+// ── Fetch (Bybit API - CORSフリー) ──
+async function fetchKlines(){
+  // Bybit interval mapping
+  const ivMap={'5m':'5','15m':'15','1h':'60','4h':'240','1d':'D'};
+  const bybitIv=ivMap[interval]||'5';
+  const url=`https://api.bybit.com/v5/market/kline?category=spot&symbol=${sym}&interval=${bybitIv}&limit=${limit}`;
+  const r=await fetch(url);
+  if(!r.ok)throw new Error(`Bybit ${r.status}`);
+  const data=await r.json();
+  if(data.retCode!==0)throw new Error(`Bybit: ${data.retMsg}`);
+  // Bybit returns newest first → reverse
+  const list=[...data.result.list].reverse();
+  return list.map(k=>({
+    ts:+k[0], open:+k[1], high:+k[2], low:+k[3], close:+k[4], volume:+k[5]
+  }));
+}
+
+// ── Rolling VQ calculation ──
+function calcRollingVQ(candles){
+  const result=[];
+  for(let i=0;i<candles.length;i++){
+    const window=candles.slice(Math.max(0,i-ROLLING+1),i+1);
+    const bVols=[],dVols=[];
+    window.forEach(c=>{
+      if(c.close>c.open)bVols.push(c.volume);
+      else if(c.close<c.open)dVols.push(c.volume);
+    });
+    const avgB=bVols.length?bVols.reduce((a,b)=>a+b,0)/bVols.length:0;
+    const avgD=dVols.length?dVols.reduce((a,b)=>a+b,0)/dVols.length:1;
+    result.push(avgD>0?avgB/avgD:0);
+  }
+  return result;
+}
+
+// ── Draw dual chart ──
+function drawDualChart(){
+  const canvas=document.getElementById('dualChart');
+  const dpr=window.devicePixelRatio||1;
+  const W=canvas.parentElement.offsetWidth;
+  const H=Math.min(260, window.innerHeight*0.32);
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr);
+
+  if(candleData.length<2)return;
+
+  const PAD={top:12,right:58,bottom:28,left:58};
+  const cw=W-PAD.left-PAD.right;
+  const ch=H-PAD.top-PAD.bottom;
+
+  // Price range
+  const prices=candleData.map(c=>c.close);
+  const pMin=Math.min(...prices)*0.9995;
+  const pMax=Math.max(...prices)*1.0005;
+  const pRange=pMax-pMin||1;
+
+  // VQ range
+  const vqMax=Math.max(...vqSeries,3.5);
+  const vqMin=0;
+  const vqRange=vqMax-vqMin||1;
+
+  const n=candleData.length;
+  const xStep=cw/(n-1);
+
+  function xOf(i){return PAD.left+i*xStep;}
+  function yPrice(p){return PAD.top+ch*(1-(p-pMin)/pRange);}
+  function yVQ(v){return PAD.top+ch*(1-(v-vqMin)/vqRange);}
+
+  ctx.clearRect(0,0,W,H);
+
+  // ── Grid ──
+  ctx.strokeStyle='rgba(24,32,40,.8)'; ctx.lineWidth=1; ctx.setLineDash([2,4]);
+  // horizontal grid 5 lines
+  for(let i=0;i<=4;i++){
+    const y=PAD.top+ch*i/4;
+    ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+cw,y); ctx.stroke();
+  }
+  // VQ threshold lines
   [1,2,3].forEach(t=>{
-    const y=h-((t-min)/range)*h;
-    ctx.strokeStyle=t===3?'rgba(0,255,136,.25)':t===2?'rgba(255,208,0,.2)':'rgba(255,255,255,.1)';
-    ctx.lineWidth=1;ctx.setLineDash([3,3]);
-    ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();
+    const y=yVQ(t);
+    ctx.strokeStyle=t===3?'rgba(0,255,136,.2)':t===2?'rgba(255,208,0,.15)':'rgba(255,255,255,.08)';
+    ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+cw,y); ctx.stroke();
   });
   ctx.setLineDash([]);
-  const step=w/(history.length-1);
+
+  // ── Price area fill ──
   ctx.beginPath();
-  history.forEach((v,i)=>{
-    const x=i*step,y=h-((v-min)/range)*(h-8)-4;
+  candleData.forEach((c,i)=>{
+    const x=xOf(i),y=yPrice(c.close);
     i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
   });
-  const lx=(history.length-1)*step;
-  ctx.lineTo(lx,h);ctx.lineTo(0,h);ctx.closePath();
-  const grad=ctx.createLinearGradient(0,0,0,h);
-  grad.addColorStop(0,'rgba(0,255,136,.18)');grad.addColorStop(1,'rgba(0,255,136,0)');
-  ctx.fillStyle=grad;ctx.fill();
+  ctx.lineTo(xOf(n-1),PAD.top+ch);
+  ctx.lineTo(xOf(0),PAD.top+ch);
+  ctx.closePath();
+  const pg=ctx.createLinearGradient(0,PAD.top,0,PAD.top+ch);
+  pg.addColorStop(0,'rgba(0,170,255,.15)'); pg.addColorStop(1,'rgba(0,170,255,0)');
+  ctx.fillStyle=pg; ctx.fill();
+
+  // ── Price line ──
   ctx.beginPath();
-  history.forEach((v,i)=>{
-    const x=i*step,y=h-((v-min)/range)*(h-8)-4;
+  candleData.forEach((c,i)=>{
+    const x=xOf(i),y=yPrice(c.close);
     i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
   });
-  ctx.strokeStyle='rgba(0,255,136,.8)';ctx.lineWidth=1.5;ctx.stroke();
-  const lv=history[history.length-1],ly=h-((lv-min)/range)*(h-8)-4;
-  ctx.beginPath();ctx.arc(lx,ly,4,0,Math.PI*2);
-  ctx.fillStyle=getJudgment(lv).color;ctx.fill();
+  ctx.strokeStyle='rgba(0,170,255,.7)'; ctx.lineWidth=1.5; ctx.stroke();
+
+  // ── VQ area fill ──
+  ctx.beginPath();
+  vqSeries.forEach((v,i)=>{
+    const x=xOf(i),y=yVQ(v);
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.lineTo(xOf(n-1),PAD.top+ch);
+  ctx.lineTo(xOf(0),PAD.top+ch);
+  ctx.closePath();
+  const vg=ctx.createLinearGradient(0,PAD.top,0,PAD.top+ch);
+  vg.addColorStop(0,'rgba(0,255,136,.18)'); vg.addColorStop(1,'rgba(0,255,136,0)');
+  ctx.fillStyle=vg; ctx.fill();
+
+  // ── VQ line (color by value) ──
+  for(let i=1;i<n;i++){
+    const v=vqSeries[i];
+    ctx.beginPath();
+    ctx.moveTo(xOf(i-1),yVQ(vqSeries[i-1]));
+    ctx.lineTo(xOf(i),yVQ(v));
+    ctx.strokeStyle=v>=3?'#00FF88':v>=2?'#FFD000':v>=1?'#5A7A9A':'#FF3A3A';
+    ctx.lineWidth=2; ctx.stroke();
+  }
+
+  // last VQ dot
+  const lv=vqSeries[n-1];
+  const j=judge(lv);
+  ctx.beginPath();
+  ctx.arc(xOf(n-1),yVQ(lv),5,0,Math.PI*2);
+  ctx.fillStyle=j.col; ctx.fill();
+
+  // last price dot
+  ctx.beginPath();
+  ctx.arc(xOf(n-1),yPrice(prices[n-1]),4,0,Math.PI*2);
+  ctx.fillStyle='var(--blue)'; ctx.fillStyle='#00AAFF'; ctx.fill();
+
+  // ── Y axis labels LEFT (VQ) ──
+  ctx.font=`${9*dpr/dpr}px 'Share Tech Mono'`;
+  ctx.textAlign='right';
+  [0,1,2,3].forEach(t=>{
+    const y=yVQ(t);
+    if(y<PAD.top||y>PAD.top+ch)return;
+    ctx.fillStyle=t===3?'rgba(0,255,136,.6)':t===2?'rgba(255,208,0,.5)':'rgba(90,122,154,.5)';
+    ctx.fillText(t.toFixed(1),PAD.left-4,y+3);
+  });
+
+  // ── Y axis labels RIGHT (Price) ──
+  ctx.textAlign='left';
+  const pSteps=4;
+  for(let i=0;i<=pSteps;i++){
+    const p=pMin+pRange*i/pSteps;
+    const y=yPrice(p);
+    if(y<PAD.top||y>PAD.top+ch)continue;
+    ctx.fillStyle='rgba(0,170,255,.45)';
+    const label=p>=1000?'$'+Math.round(p/1000)+'K':'$'+p.toFixed(2);
+    ctx.fillText(label,PAD.left+cw+5,y+3);
+  }
+
+  // ── X axis time labels ──
+  ctx.textAlign='center'; ctx.fillStyle='rgba(90,122,154,.5)';
+  const xLabels=5;
+  for(let i=0;i<=xLabels;i++){
+    const idx=Math.round(i*(n-1)/xLabels);
+    const x=xOf(idx);
+    ctx.fillText(ft(candleData[idx].ts),x,PAD.top+ch+16);
+  }
+
+  // ── Axis lines ──
+  ctx.strokeStyle='rgba(24,32,40,1)'; ctx.lineWidth=1; ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(PAD.left,PAD.top); ctx.lineTo(PAD.left,PAD.top+ch); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PAD.left+cw,PAD.top); ctx.lineTo(PAD.left+cw,PAD.top+ch); ctx.stroke();
 }
 
-async function updateData(){
-  setStatus('loading');
-  try{
-    const klines=await fetchKlines(currentSymbol,currentInterval,LOOKBACK);
-    const result=calcVQ(klines);
-    vqHistory.push(result.vq);
-    if(vqHistory.length>50)vqHistory.shift();
-    const j=getJudgment(result.vq);
-    document.getElementById('symbolName').textContent=currentSymbol;
-    document.getElementById('symbolPrice').textContent=result.lastClose?'$'+result.lastClose.toLocaleString('en-US',{maximumFractionDigits:2}):'—';
-    document.getElementById('intervalBadge').textContent=intervalLabels[currentInterval];
-    const vqEl=document.getElementById('vqNumber');
-    vqEl.textContent=result.vq.toFixed(2);vqEl.style.color=j.color;
-    const jEl=document.getElementById('vqJudgment');
-    jEl.textContent=j.text;jEl.style.color=j.color;
-    document.getElementById('bullVol').textContent=fmtVol(result.avgBull);
-    document.getElementById('bearVol').textContent=fmtVol(result.avgBear);
-    document.getElementById('bullCount').textContent=`${result.bullCount} / ${result.totalBars}本`;
-    document.getElementById('lastUpdate').textContent=new Date().toLocaleTimeString('ja-JP');
-    const pct=Math.min(result.vq/5*100,100);
-    const gf=document.getElementById('gaugeFill');
-    gf.style.width=pct+'%';gf.style.background=j.color;
-    drawChart(vqHistory);
-    setStatus('live');
-  }catch(e){setStatus('error',e.message);}
-  document.getElementById('loadingOverlay').style.display='none';
+// ── Update UI stats ──
+function updateStats(){
+  if(!candleData.length)return;
+  const last=candleData[candleData.length-1];
+  const first=candleData[0];
+  const vq=vqSeries[vqSeries.length-1]||0;
+  const j=judge(vq);
+
+  // rolling bull/bear for last ROLLING candles
+  const win=candleData.slice(-ROLLING);
+  const bVols=[],dVols=[];
+  win.forEach(c=>{
+    if(c.close>c.open)bVols.push(c.volume);
+    else if(c.close<c.open)dVols.push(c.volume);
+  });
+  const avgB=bVols.length?bVols.reduce((a,b)=>a+b,0)/bVols.length:0;
+  const avgD=dVols.length?dVols.reduce((a,b)=>a+b,0)/dVols.length:0;
+
+  document.getElementById('sVQ').textContent=vq.toFixed(2);
+  document.getElementById('sVQ').style.color=j.col;
+  document.getElementById('sPrice').textContent=fp(last.close);
+  document.getElementById('sBull').textContent=fv(avgB);
+  document.getElementById('sBear').textContent=fv(avgD);
+
+  // judgment bar
+  const jVQEl=document.getElementById('jVQ');
+  jVQEl.textContent=vq.toFixed(2); jVQEl.style.color=j.col;
+  const jTagEl=document.getElementById('jTag');
+  jTagEl.textContent=j.text; jTagEl.style.color=j.col;
+  document.getElementById('jPrice').textContent=fp(last.close);
+
+  // price change
+  const chg=((last.close-first.close)/first.close*100);
+  const chgEl=document.getElementById('jChange');
+  chgEl.textContent=(chg>=0?'+':'')+chg.toFixed(2)+'%';
+  chgEl.style.color=chg>=0?'var(--green)':'var(--red)';
+
+  // gauge
+  const pct=Math.min(vq/5*100,100);
+  const gf=document.getElementById('gf');
+  gf.style.width=pct+'%'; gf.style.background=j.col;
 }
 
+// ── Status ──
 function setStatus(state,msg=''){
-  const dot=document.getElementById('statusDot'),text=document.getElementById('statusText');
-  if(state==='live'){dot.className='status-dot live';text.textContent='LIVE — Binance API';}
-  else if(state==='loading'){dot.className='status-dot';text.textContent='取得中...';}
-  else{dot.className='status-dot';dot.style.background='var(--red)';text.textContent='エラー: '+msg;}
-}
-
-function setSymbol(sym,el){
-  currentSymbol=sym;vqHistory=[];
-  document.querySelectorAll('.ticker-chip').forEach(c=>c.classList.remove('active'));
-  if(el)el.classList.add('active');
-  document.getElementById('loadingOverlay').style.display='flex';
-  updateData();
-}
-
-function setInterval_(iv,el){
-  currentInterval=iv;vqHistory=[];
-  document.querySelectorAll('.interval-btn').forEach(b=>b.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('loadingOverlay').style.display='flex';
-  updateData();
-}
-
-async function searchCustom(){
-  const raw=document.getElementById('customInput').value.trim().toUpperCase();
-  if(!raw)return;
-  const candidates=[raw,raw+'USDT',raw+'BUSD'];
-  let found=null;
-  for(const sym of candidates){
-    try{
-      const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=${sym}&interval=5m&limit=5`);
-      if(r.ok){found=sym;break;}
-    }catch{}
-  }
-  if(found){
-    const bar=document.querySelector('.ticker-bar');
-    const existing=bar.querySelector(`[data-symbol="${found}"]`);
-    if(!existing){
-      const chip=document.createElement('div');
-      chip.className='ticker-chip';chip.dataset.symbol=found;
-      chip.textContent=found.replace('USDT','')+'/USDT';
-      chip.onclick=()=>setSymbol(found,chip);
-      bar.appendChild(chip);
-    }
-    setSymbol(found,bar.querySelector(`[data-symbol="${found}"]`));
-    document.getElementById('customInput').value='';
-  }else{
-    alert(`"${raw}" はBinanceで見つかりませんでした。`);
+  const d=document.getElementById('sdot'),t=document.getElementById('stxt');
+  const lb=document.getElementById('liveBadge');
+  if(state==='live'){
+    d.className='sdot live'; t.textContent=`LIVE — Bybit ${sym} ${interval} / ${new Date().toLocaleTimeString('ja-JP')}`;
+    lb.style.color='var(--green)';
+  } else if(state==='ld'){
+    d.className='sdot'; t.textContent='取得中...'; lb.style.color='var(--dim)';
+  } else {
+    d.className='sdot err'; t.textContent='エラー: '+msg; lb.style.color='var(--red)';
   }
 }
 
-function refresh(){
-  const btn=document.getElementById('refreshBtn');
-  btn.classList.add('spinning');
-  setTimeout(()=>btn.classList.remove('spinning'),600);
-  document.getElementById('loadingOverlay').style.display='flex';
+// ── Main ──
+async function updateData(){
+  setStatus('ld');
+  document.getElementById('ov').classList.remove('hide');
+  document.getElementById('ovTxt').textContent=`${symLabel} ${interval} — Bybit API...`;
+  try {
+    candleData=await fetchKlines();
+    vqSeries=calcRollingVQ(candleData);
+    updateStats();
+    drawDualChart();
+    setStatus('live');
+  } catch(e){
+    setStatus('error',e.message);
+  }
+  document.getElementById('ov').classList.add('hide');
+}
+
+// ── Controls ──
+function setCoin(el){
+  sym=el.dataset.sym; symLabel=el.dataset.label;
+  document.querySelectorAll('.coin').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on'); updateData();
+}
+function setIv(el){
+  interval=el.dataset.iv; limit=+el.dataset.limit;
+  document.querySelectorAll('.ivbtn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on'); updateData();
+}
+function doRefresh(){
+  const b=document.getElementById('rfBtn');
+  b.classList.add('spin'); setTimeout(()=>b.classList.remove('spin'),500);
   updateData();
 }
 
+// ── Resize ──
+window.addEventListener('resize',()=>{ if(candleData.length) drawDualChart(); });
+
+// ── Auto refresh 60s ──
 updateData();
-autoRefreshTimer=setInterval(updateData,60000);
+autoTimer=setInterval(updateData,60000);
 </script>
 </body>
 </html>
