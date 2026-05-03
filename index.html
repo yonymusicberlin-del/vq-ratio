@@ -178,7 +178,7 @@ canvas{width:100%;display:block;}
   <div class="chart-hdr">
     <div class="chart-title">VQ-5 ／ VQ-50 ／ 価格</div>
     <div class="legend">
-      <div class="leg"><div class="leg-line" style="background:#00AAFF"></div>VQ-5</div>
+      <div class="leg"><div class="leg-line" style="background:#FF8C00"></div>VQ-5</div>
       <div class="leg"><div class="leg-line" style="background:#FFD000"></div>VQ-50</div>
       <div class="leg"><div class="leg-line" style="background:rgba(0,170,255,.4)"></div>価格</div>
     </div>
@@ -282,7 +282,7 @@ function evalSignal(){
     c1,'#A855F7');
   updateCond('cond2','c2val','c2status', v5.toFixed(2),
     c2?`✅ ${v5.toFixed(2)} ≥ ${TH.vq5}`:`❌ ${v5.toFixed(2)} < ${TH.vq5}`,
-    c2,'#00AAFF');
+    c2,'#FF8C00');
   updateCond('cond3','c3val','c3status', v50.toFixed(2),
     c3?`✅ ${v50.toFixed(2)} ≥ ${TH.vq50}`:`❌ ${v50.toFixed(2)} < ${TH.vq50}`,
     c3,'#FFD000');
@@ -404,9 +404,9 @@ function drawMain(){
   ctx.setLineDash([2,4]);
   [TH.vq50,TH.vq5].forEach((t,i)=>{
     const y=yVQ(t);
-    ctx.strokeStyle=i===0?'rgba(255,208,0,.2)':'rgba(0,170,255,.25)';
+    ctx.strokeStyle=i===0?'rgba(255,208,0,.2)':'rgba(255,140,0,.25)';
     ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(PAD.left,y);ctx.lineTo(PAD.left+cw,y);ctx.stroke();
-    ctx.fillStyle=i===0?'rgba(255,208,0,.5)':'rgba(0,170,255,.5)';
+    ctx.fillStyle=i===0?'rgba(255,208,0,.5)':'rgba(255,140,0,.5)';
     ctx.font=`8px 'Share Tech Mono'`;ctx.textAlign='right';
     ctx.fillText(t.toFixed(1),PAD.left-3,y+3);
   });
@@ -440,11 +440,11 @@ function drawMain(){
   // VQ-5 line (blue)
   ctx.beginPath();let s5=false;
   vq5S.forEach((v,i)=>{if(v===null)return;const x=xOf(i),y=yVQ(v);s5?ctx.lineTo(x,y):ctx.moveTo(x,y);s5=true;});
-  ctx.strokeStyle='#00AAFF';ctx.lineWidth=2;ctx.stroke();
+  ctx.strokeStyle='#FF8C00';ctx.lineWidth=2;ctx.stroke();
 
   // Last dots
   const lv5=vq5S[n-1],lv50=vq50S[n-1];
-  if(lv5){ctx.beginPath();ctx.arc(xOf(n-1),yVQ(lv5),4,0,Math.PI*2);ctx.fillStyle='#00AAFF';ctx.fill();}
+  if(lv5){ctx.beginPath();ctx.arc(xOf(n-1),yVQ(lv5),4,0,Math.PI*2);ctx.fillStyle='#FF8C00';ctx.fill();}
   if(lv50){ctx.beginPath();ctx.arc(xOf(n-1),yVQ(lv50),4,0,Math.PI*2);ctx.fillStyle='#FFD000';ctx.fill();}
 
   // Price right Y labels
