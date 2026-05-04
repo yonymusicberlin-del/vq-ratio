@@ -4,20 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>VQ Signal — REDFORDメソッド</title>
+<title>VQ Signal v10 — REDFORDメソッド</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#060A0E;--surface:#0C1118;--border:#182028;
   --green:#00FF88;--yellow:#FFD000;--red:#FF3A3A;--blue:#00AAFF;
-  --purple:#A855F7;--orange:#FF8C00;--dim:#2A3A4A;--text:#B8CCE0;--text2:#5A7A9A;
+  --purple:#A855F7;--orange:#FF4500;--dim:#2A3A4A;--text:#B8CCE0;--text2:#5A7A9A;
+  --vq3:#FFE600;--vq5:#FF4500;
   --mono:'Share Tech Mono',monospace;--sans:'Noto Sans JP',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);overflow-x:hidden;padding-bottom:20px;}
 body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,255,136,0.005) 3px,rgba(0,255,136,0.005) 4px);pointer-events:none;z-index:9999;}
 
-/* Header */
 .hdr{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:50;}
 .hdr-left{display:flex;align-items:center;gap:9px;}
 .hdr-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 2s infinite;flex-shrink:0;}
@@ -25,47 +25,42 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 .hdr-title{font-family:var(--mono);font-size:13px;letter-spacing:.22em;color:var(--green);}
 .hdr-sub{font-size:8px;color:var(--dim);letter-spacing:.1em;margin-top:1px;}
 .hdr-right{display:flex;gap:7px;align-items:center;}
-.live-badge{font-family:var(--mono);font-size:8px;color:var(--green);border:1px solid rgba(0,255,136,.3);padding:2px 6px;border-radius:4px;letter-spacing:.1em;}
+.live-badge{font-family:var(--mono);font-size:8px;color:var(--green);border:1px solid rgba(0,255,136,.3);padding:2px 6px;border-radius:4px;}
 .hdr-btn{background:none;border:1px solid var(--border);color:var(--dim);width:30px;height:30px;border-radius:7px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;}
 .hdr-btn.spin{animation:spin .5s linear;}
 @keyframes spin{to{transform:rotate(360deg);}}
 
-/* Controls */
 .coins{display:flex;gap:5px;padding:7px 12px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border);}
 .coins::-webkit-scrollbar{display:none;}
 .coin{flex-shrink:0;padding:4px 12px;border-radius:20px;border:1px solid var(--border);font-family:var(--mono);font-size:10px;cursor:pointer;color:var(--dim);background:var(--surface);}
 .coin.on{border-color:var(--green);color:var(--green);background:rgba(0,255,136,.06);}
+
 .ivrow{display:flex;gap:5px;padding:7px 12px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border);}
 .ivrow::-webkit-scrollbar{display:none;}
 .ivbtn{flex-shrink:0;padding:4px 11px;border-radius:6px;border:1px solid var(--border);font-family:var(--mono);font-size:10px;cursor:pointer;color:var(--dim);background:var(--bg);}
 .ivbtn.on{border-color:var(--yellow);color:var(--yellow);background:rgba(255,208,0,.06);}
 
-/* ── BIG Signal Display ── */
-.sig-box{margin:10px;border-radius:16px;padding:16px;border:2px solid;transition:all .4s;position:relative;overflow:hidden;}
-.sig-box::before{content:'';position:absolute;inset:0;opacity:.06;border-radius:14px;}
-.sig-box.full{border-color:var(--green);background:rgba(0,255,136,.05);}
-.sig-box.full::before{background:var(--green);}
-.sig-box.partial{border-color:var(--yellow);background:rgba(255,208,0,.04);}
-.sig-box.partial::before{background:var(--yellow);}
+/* Signal box */
+.sig-box{margin:10px;border-radius:14px;padding:14px;border:2px solid var(--border);background:var(--surface);transition:all .4s;}
+.sig-box.full{border-color:var(--green);background:rgba(0,255,136,.04);}
+.sig-box.prep{border-color:var(--orange);background:rgba(255,140,0,.04);}
 .sig-box.dry{border-color:var(--purple);background:rgba(168,85,247,.04);}
-.sig-box.dry::before{background:var(--purple);}
-.sig-box.none{border-color:var(--border);background:var(--surface);}
+.sig-box.warn{border-color:var(--yellow);background:rgba(255,208,0,.03);}
 
-.sig-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-.sig-icon{font-size:28px;line-height:1;}
-.sig-title{font-family:var(--mono);font-size:14px;letter-spacing:.1em;font-weight:bold;}
-.sig-sub{font-size:9px;color:var(--text2);margin-top:2px;letter-spacing:.08em;}
+.sig-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;}
+.sig-icon{font-size:26px;line-height:1;}
+.sig-title{font-family:var(--mono);font-size:13px;font-weight:bold;margin-top:2px;}
+.sig-sub{font-size:8px;color:var(--text2);margin-top:3px;letter-spacing:.08em;}
 .sig-price{font-family:var(--mono);font-size:20px;color:var(--blue);text-align:right;}
 .sig-change{font-family:var(--mono);font-size:10px;text-align:right;margin-top:2px;}
 
-/* 3 condition checks */
-.conditions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px;}
-.cond{background:rgba(0,0,0,.3);border-radius:10px;padding:10px 8px;text-align:center;border:1px solid var(--border);transition:all .3s;}
+.conditions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;}
+.cond{background:rgba(0,0,0,.25);border-radius:9px;padding:9px 7px;text-align:center;border:1px solid var(--border);transition:border-color .3s;}
 .cond.ok{border-color:currentColor;}
-.cond-icon{font-size:18px;margin-bottom:4px;}
-.cond-label{font-size:8px;color:var(--text2);letter-spacing:.08em;margin-bottom:4px;}
-.cond-val{font-family:var(--mono);font-size:13px;font-weight:bold;}
-.cond-status{font-family:var(--mono);font-size:8px;margin-top:3px;}
+.cond-icon{font-size:16px;margin-bottom:3px;}
+.cond-label{font-size:7px;color:var(--text2);letter-spacing:.07em;margin-bottom:3px;}
+.cond-val{font-family:var(--mono);font-size:14px;font-weight:bold;}
+.cond-status{font-family:var(--mono);font-size:7px;margin-top:2px;}
 
 /* Charts */
 .chart-wrap{margin:8px 10px 0;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;position:relative;}
@@ -74,27 +69,30 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 .legend{display:flex;flex-wrap:wrap;gap:8px;}
 .leg{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:8px;color:var(--dim);}
 .leg-line{width:14px;height:2px;border-radius:1px;}
+.leg-dot{width:8px;height:8px;border-radius:50%;}
 canvas{width:100%;display:block;}
 
-/* Status */
 .sbar{display:flex;align-items:center;gap:7px;padding:6px 12px;font-size:8px;color:var(--dim);font-family:var(--mono);border-top:1px solid var(--border);}
 .sdot{width:5px;height:5px;border-radius:50%;background:var(--dim);flex-shrink:0;}
 .sdot.live{background:var(--green);box-shadow:0 0 5px var(--green);animation:blink 2s infinite;}
 .sdot.err{background:var(--red);}
 
-/* Loading */
 .overlay{position:absolute;inset:0;background:rgba(6,10,14,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;z-index:20;border-radius:14px;}
 .overlay.hide{display:none;}
 .ring{width:30px;height:30px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;}
-.ov-txt{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.1em;}
+.ov-txt{font-family:var(--mono);font-size:10px;color:var(--dim);}
 
-/* History log */
+/* Signal log */
 .log-wrap{margin:8px 10px 0;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
-.log-hdr{padding:8px 12px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:9px;color:var(--text2);letter-spacing:.12em;}
-.log-body{padding:6px 0;max-height:100px;overflow-y:auto;}
-.log-row{display:flex;gap:8px;padding:3px 12px;font-family:var(--mono);font-size:9px;align-items:center;}
-.log-time{color:var(--dim);flex-shrink:0;width:44px;}
-.log-msg{flex:1;}
+.log-hdr{padding:8px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.log-hdr-title{font-family:var(--mono);font-size:9px;color:var(--text2);letter-spacing:.12em;}
+.log-clear{font-family:var(--mono);font-size:8px;color:var(--dim);cursor:pointer;border:1px solid var(--border);padding:2px 8px;border-radius:4px;background:none;}
+.log-body{max-height:160px;overflow-y:auto;}
+.log-row{display:grid;grid-template-columns:50px 1fr auto;gap:6px;padding:5px 12px;border-bottom:1px solid rgba(24,32,40,.5);align-items:center;}
+.log-time{font-family:var(--mono);font-size:9px;color:var(--dim);}
+.log-msg{font-family:var(--mono);font-size:9px;}
+.log-detail{font-family:var(--mono);font-size:8px;color:var(--dim);text-align:right;}
+.log-empty{padding:12px;text-align:center;font-family:var(--mono);font-size:9px;color:var(--dim);}
 </style>
 </head>
 <body>
@@ -104,11 +102,11 @@ canvas{width:100%;display:block;}
     <div class="hdr-dot"></div>
     <div>
       <div class="hdr-title">VQ SIGNAL</div>
-      <div class="hdr-sub">3条件エントリー判定 — REDFORDメソッド</div>
+      <div class="hdr-sub">VQ-3先行 / VQ-5本シグナル — REDFORDメソッド</div>
     </div>
   </div>
   <div class="hdr-right">
-    <span class="live-badge" id="liveBadge">●LIVE</span>
+    <span class="live-badge">●LIVE</span>
     <button class="hdr-btn" id="rfBtn" onclick="doRefresh()">↻</button>
   </div>
 </div>
@@ -122,65 +120,61 @@ canvas{width:100%;display:block;}
 </div>
 
 <div class="ivrow">
-  <button class="ivbtn on" data-iv="5m" data-limit="120" onclick="setIv(this)">5分</button>
-  <button class="ivbtn" data-iv="15m" data-limit="100" onclick="setIv(this)">15分</button>
-  <button class="ivbtn" data-iv="1h" data-limit="100" onclick="setIv(this)">1時間</button>
+  <button class="ivbtn on" data-iv="5m" data-limit="200" onclick="setIv(this)">5分</button>
+  <button class="ivbtn" data-iv="15m" data-limit="150" onclick="setIv(this)">15分</button>
+  <button class="ivbtn" data-iv="1h" data-limit="120" onclick="setIv(this)">1時間</button>
   <button class="ivbtn" data-iv="4h" data-limit="100" onclick="setIv(this)">4時間</button>
   <button class="ivbtn" data-iv="1d" data-limit="100" onclick="setIv(this)">日足</button>
 </div>
 
-<!-- BIG Signal Box -->
-<div class="sig-box none" id="sigBox">
+<!-- Signal box -->
+<div class="sig-box" id="sigBox">
   <div class="sig-top">
     <div>
       <div class="sig-icon" id="sigIcon">⏳</div>
       <div class="sig-title" id="sigTitle" style="color:var(--dim)">読み込み中...</div>
-      <div class="sig-sub" id="sigSub">3条件を確認中</div>
+      <div class="sig-sub" id="sigSub">データ取得中</div>
     </div>
     <div>
       <div class="sig-price" id="sigPrice">$——</div>
       <div class="sig-change" id="sigChange" style="color:var(--dim)">——</div>
     </div>
   </div>
-
-  <!-- 3 Conditions -->
   <div class="conditions">
-    <!-- Condition 1: Sell-dry -->
-    <div class="cond" id="cond1" style="color:var(--dim)">
-      <div class="cond-icon">🟣</div>
-      <div class="cond-label">売り枯れ率</div>
+    <div class="cond" id="cond1" style="color:var(--yellow)">
+      <div class="cond-icon">🟡</div>
+      <div class="cond-label">VQ-3 先行</div>
       <div class="cond-val" id="c1val">—</div>
       <div class="cond-status" id="c1status">確認中</div>
     </div>
-    <!-- Condition 2: VQ-5 -->
-    <div class="cond" id="cond2" style="color:var(--dim)">
-      <div class="cond-icon">⚡</div>
-      <div class="cond-label">VQ-5（短期）</div>
+    <div class="cond" id="cond2" style="color:var(--purple)">
+      <div class="cond-icon">🟣</div>
+      <div class="cond-label">売り枯れ率</div>
       <div class="cond-val" id="c2val">—</div>
       <div class="cond-status" id="c2status">確認中</div>
     </div>
-    <!-- Condition 3: VQ-50 -->
-    <div class="cond" id="cond3" style="color:var(--dim)">
-      <div class="cond-icon">📈</div>
-      <div class="cond-label">VQ-50（大局）</div>
+    <div class="cond" id="cond3" style="color:var(--orange)">
+      <div class="cond-icon">⚡</div>
+      <div class="cond-label">VQ-5 本シグナル</div>
       <div class="cond-val" id="c3val">—</div>
       <div class="cond-status" id="c3status">確認中</div>
     </div>
   </div>
 </div>
 
-<!-- Main chart: VQ-5 + VQ-50 + Price -->
+<!-- Main chart -->
 <div class="chart-wrap" id="mainWrap">
   <div class="overlay" id="ov">
     <div class="ring"></div>
     <div class="ov-txt" id="ovTxt">Bybit API 取得中...</div>
   </div>
   <div class="chart-hdr">
-    <div class="chart-title">VQ-5 ／ VQ-50 ／ 価格</div>
+    <div class="chart-title">VQ-3 / VQ-5 / BTC価格</div>
     <div class="legend">
-      <div class="leg"><div class="leg-line" style="background:#FF8C00"></div>VQ-5</div>
-      <div class="leg"><div class="leg-line" style="background:#FFD000"></div>VQ-50</div>
-      <div class="leg"><div class="leg-line" style="background:rgba(0,170,255,.4)"></div>価格</div>
+      <div class="leg"><div class="leg-line" style="background:var(--yellow)"></div>VQ-3 先行</div>
+      <div class="leg"><div class="leg-line" style="background:var(--orange)"></div>VQ-5 本</div>
+      <div class="leg"><div class="leg-line" style="background:var(--blue)"></div>価格</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--red)"></div>シグナル</div>
     </div>
   </div>
   <canvas id="mc"></canvas>
@@ -190,38 +184,48 @@ canvas{width:100%;display:block;}
   </div>
 </div>
 
-<!-- Sell-dry chart -->
+<!-- Volume chart -->
+<div class="chart-wrap">
+  <div class="chart-hdr">
+    <div class="chart-title">出来高 ／ 20本平均</div>
+    <div class="legend">
+      <div class="leg"><div class="leg-line" style="background:rgba(0,255,136,.5)"></div>出来高</div>
+      <div class="leg"><div class="leg-line" style="background:#FF8C00"></div>20本平均</div>
+      <div class="leg"><div class="leg-dot" style="background:rgba(255,208,0,.7);width:10px;height:4px;border-radius:2px"></div>平均超え</div>
+    </div>
+  </div>
+  <canvas id="vc"></canvas>
+</div>
 <div class="chart-wrap">
   <div class="chart-hdr">
     <div class="chart-title">売り枯れ率（0.5以下 → 売り枯れ）</div>
     <div class="legend">
-      <div class="leg"><div class="leg-line" style="background:#A855F7"></div>売り枯れ率</div>
-      <div class="leg"><div class="leg-line" style="background:var(--red);width:8px;height:8px;border-radius:50%"></div>シグナル</div>
+      <div class="leg"><div class="leg-line" style="background:var(--purple)"></div>売り枯れ率</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--red)"></div>シグナル</div>
     </div>
   </div>
   <canvas id="dc"></canvas>
 </div>
 
-<!-- Signal history log -->
+<!-- Signal log -->
 <div class="log-wrap">
-  <div class="log-hdr">📋 シグナル履歴</div>
+  <div class="log-hdr">
+    <div class="log-hdr-title">📋 シグナル履歴（時刻記録）</div>
+    <button class="log-clear" onclick="clearLog()">クリア</button>
+  </div>
   <div class="log-body" id="logBody">
-    <div class="log-row"><span class="log-time" style="color:var(--dim)">——</span><span class="log-msg" style="color:var(--dim)">データ取得後に表示されます</span></div>
+    <div class="log-empty">シグナル待ち...</div>
   </div>
 </div>
 
 <script>
-// ── State ──
-let sym='BTCUSDT', symLabel='BTC', interval='5m', limit=120;
-let candles=[], vq5S=[], vq50S=[], dryS=[], priceS=[];
-let sigLog=[];
-let autoTimer=null;
-let lastSigState='';
+let sym='BTCUSDT', symLabel='BTC', interval='5m', limit=200;
+let candles=[], vq3S=[], vq5S=[], dryS=[], priceS=[], volS=[], volMA=[];
+let sigLog=[], lastSigState='', autoTimer=null;
 
-// ── Thresholds ──
-const TH = { dry:0.5, vq5:3.0, vq50:1.5 };
+const TH={vq3:2.5, dry:0.5, vq5:3.0};
 
-// ── Fetch (Bybit) ──
+// ── Fetch ──
 async function fetchKlines(){
   const ivMap={'5m':'5','15m':'15','1h':'60','4h':'240','1d':'D'};
   const url=`https://api.bybit.com/v5/market/kline?category=spot&symbol=${sym}&interval=${ivMap[interval]||'5'}&limit=${limit}`;
@@ -232,107 +236,99 @@ async function fetchKlines(){
   return[...d.result.list].reverse().map(k=>({ts:+k[0],open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5]}));
 }
 
-// ── VQ calculation ──
-function calcVQ(arr){
-  const bv=[],dv=[];
+// ── VQ calc (窓サイズN本) ──
+function calcVQ(cs, endIdx, winSize){
+  const start = Math.max(0, endIdx - winSize + 1);
+  const arr = cs.slice(start, endIdx + 1);
+  const bv=[], dv=[];
   arr.forEach(c=>{
-    if(c.close>c.open)bv.push(c.volume);
-    else if(c.close<c.open)dv.push(c.volume);
+    if(!c.volume || c.volume<=0) return;
+    if(c.close > c.open)       bv.push(c.volume);
+    else if(c.close < c.open)  dv.push(c.volume);
   });
-  const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
-  const ab=avg(bv),ad=avg(dv)||1;
+  const avg = a => a.length ? a.reduce((s,v)=>s+v,0)/a.length : 0;
+  const ab=avg(bv), ad=avg(dv);
+  if(ad===0) return ab>0 ? 5.0 : 1.0;
   return ab/ad;
 }
 
-// ── Build all series ──
+// ── Build series ──
 function buildSeries(cs){
   const n=cs.length;
-  vq5S =cs.map((_,i)=>i< 4?null:calcVQ(cs.slice(i-4, i+1)));
-  vq50S=cs.map((_,i)=>i<49?null:calcVQ(cs.slice(i-49,i+1)));
+  vq3S = Array.from({length:n},(_,i)=>calcVQ(cs,i,3));
+  vq5S = Array.from({length:n},(_,i)=>calcVQ(cs,i,5));
   priceS=cs.map(c=>c.close);
-
-  // Sell-dry: bear vol short(5) / bear vol long(20)
+  volS  =cs.map(c=>c.volume);
+  // 20本移動平均出来高
+  volMA =cs.map((_,i)=>{
+    const w=cs.slice(Math.max(0,i-19),i+1);
+    return w.reduce((s,c)=>s+c.volume,0)/w.length;
+  });
   dryS=cs.map((_,i)=>{
-    const sw=cs.slice(Math.max(0,i-4), i+1);
+    const sw=cs.slice(Math.max(0,i-4),i+1);
     const lw=cs.slice(Math.max(0,i-19),i+1);
-    const bvol=a=>a.filter(c=>c.close<c.open).map(c=>c.volume);
+    const bv=a=>a.filter(c=>c.close<c.open).map(c=>c.volume);
     const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
-    return avg(bvol(sw))/(avg(bvol(lw))||1);
+    return avg(bv(sw))/(avg(bv(lw))||1);
   });
 }
 
-// ── Signal evaluation ──
+// ── Eval signal ──
 function evalSignal(){
   const n=candles.length;
-  const dry=dryS[n-1];
-  const v5 =vq5S[n-1]||0;
-  const v50=vq50S[n-1]||0;
-  const price=priceS[n-1];
-  const first=priceS[0];
+  const v3=vq3S[n-1]||0, v5=vq5S[n-1]||0, dry=dryS[n-1]||1;
+  const price=priceS[n-1], first=priceS[0];
   const chg=(price-first)/first*100;
 
-  const c1=dry<=TH.dry;   // 売り枯れ
-  const c2=v5 >=TH.vq5;   // VQ-5強い
-  const c3=v50>=TH.vq50;  // VQ-50大局OK
-  const count=[c1,c2,c3].filter(Boolean).length;
+  const c1=v3>=TH.vq3;
+  const c2=dry<=TH.dry;
+  const c3=v5>=TH.vq5;
 
-  // Update condition cards
-  updateCond('cond1','c1val','c1status', dry.toFixed(2),
-    c1?`✅ ${dry.toFixed(2)} < ${TH.dry}`:`❌ ${dry.toFixed(2)} ≥ ${TH.dry}`,
-    c1,'#A855F7');
-  updateCond('cond2','c2val','c2status', v5.toFixed(2),
-    c2?`✅ ${v5.toFixed(2)} ≥ ${TH.vq5}`:`❌ ${v5.toFixed(2)} < ${TH.vq5}`,
-    c2,'#FF8C00');
-  updateCond('cond3','c3val','c3status', v50.toFixed(2),
-    c3?`✅ ${v50.toFixed(2)} ≥ ${TH.vq50}`:`❌ ${v50.toFixed(2)} < ${TH.vq50}`,
-    c3,'#FFD000');
-
-  // Big signal box
-  const box=document.getElementById('sigBox');
-  const icon=document.getElementById('sigIcon');
-  const title=document.getElementById('sigTitle');
-  const sub=document.getElementById('sigSub');
+  updateCond('cond1','c1val','c1status',v3.toFixed(2),
+    c1?`✅ ${v3.toFixed(2)} ≥ ${TH.vq3}`:`❌ ${v3.toFixed(2)} < ${TH.vq3}`,c1,'var(--yellow)');
+  updateCond('cond2','c2val','c2status',dry.toFixed(2),
+    c2?`✅ ${dry.toFixed(2)} < ${TH.dry}`:`❌ ${dry.toFixed(2)} ≥ ${TH.dry}`,c2,'var(--purple)');
+  updateCond('cond3','c3val','c3status',v5.toFixed(2),
+    c3?`✅ ${v5.toFixed(2)} ≥ ${TH.vq5}`:`❌ ${v5.toFixed(2)} < ${TH.vq5}`,c3,'var(--orange)');
 
   document.getElementById('sigPrice').textContent=price>=1000?'$'+Math.round(price).toLocaleString('en-US'):'$'+price.toFixed(4);
   document.getElementById('sigChange').textContent=(chg>=0?'+':'')+chg.toFixed(2)+'%';
   document.getElementById('sigChange').style.color=chg>=0?'var(--green)':'var(--red)';
 
-  let state='';
-  if(count===3){
-    box.className='sig-box full';
-    icon.textContent='🟢'; title.textContent='エントリーシグナル';
-    title.style.color='var(--green)';
-    sub.textContent='3条件すべて達成 — 高信頼度エントリー';
+  const box=document.getElementById('sigBox');
+  const icon=document.getElementById('sigIcon');
+  const title=document.getElementById('sigTitle');
+  const sub=document.getElementById('sigSub');
+
+  let state='none';
+  if(c3&&c2){
+    box.className='sig-box full';icon.textContent='🟢';
+    title.textContent='本シグナル';title.style.color='var(--green)';
+    sub.textContent='VQ-5突破 + 売り枯れ確認 — エントリー';
     state='full';
-  } else if(c1&&c3&&!c2){
-    box.className='sig-box dry';
-    icon.textContent='⚡'; title.textContent='売り枯れ + 大局OK';
-    title.style.color='var(--purple)';
-    sub.textContent='VQ-5の突破待ち — エントリー準備';
+  } else if(c1&&c2&&!c3){
+    box.className='sig-box prep';icon.textContent='🟠';
+    title.textContent='VQ-3先行シグナル';title.style.color='var(--yellow)';
+    sub.textContent='VQ-3突破 + 売り枯れ — VQ-5突破待ち';
     state='prep';
-  } else if(count===2){
-    box.className='sig-box partial';
-    icon.textContent='🟡'; title.textContent='条件2/3達成';
-    title.style.color='var(--yellow)';
-    sub.textContent=`あと1条件 — 様子見`;
-    state='partial';
-  } else if(c1){
-    box.className='sig-box dry';
-    icon.textContent='🟣'; title.textContent='売り枯れ検出';
-    title.style.color='var(--purple)';
+  } else if(c1&&!c2){
+    box.className='sig-box warn';icon.textContent='🟡';
+    title.textContent='VQ-3上昇中';title.style.color='var(--yellow)';
+    sub.textContent='先行シグナル検出 — 売り枯れを待つ';
+    state='warn';
+  } else if(c2){
+    box.className='sig-box dry';icon.textContent='🟣';
+    title.textContent='売り枯れ検出';title.style.color='var(--purple)';
     sub.textContent='売り手が消えつつある — VQ上昇を待つ';
     state='dry';
   } else {
-    box.className='sig-box none';
-    icon.textContent='⏸'; title.textContent='様子見';
-    title.style.color='var(--dim)';
-    sub.textContent=`条件 ${count}/3 — エントリー根拠なし`;
-    state='none';
+    box.className='sig-box';icon.textContent='⏸';
+    title.textContent='様子見';title.style.color='var(--dim)';
+    sub.textContent='条件未達成';state='none';
   }
 
-  // Log state change
-  if(state!==lastSigState && state!=='none'){
-    addLog(state, v5, v50, dry, price);
+  if(state!==lastSigState&&state!=='none'){
+    addLog(state,v3,v5,dry,price,new Date(candles[n-1].ts));
     lastSigState=state;
   }
 }
@@ -340,7 +336,7 @@ function evalSignal(){
 function updateCond(id,valId,statusId,val,statusTxt,ok,col){
   const el=document.getElementById(id);
   el.style.color=ok?col:'var(--dim)';
-  if(ok)el.classList.add('ok'); else el.classList.remove('ok');
+  if(ok)el.classList.add('ok');else el.classList.remove('ok');
   document.getElementById(valId).textContent=val;
   document.getElementById(valId).style.color=ok?col:'var(--dim)';
   document.getElementById(statusId).textContent=statusTxt;
@@ -348,48 +344,61 @@ function updateCond(id,valId,statusId,val,statusTxt,ok,col){
 }
 
 // ── Log ──
-function addLog(state,v5,v50,dry,price){
-  const msgs={
-    full:'🟢 エントリーシグナル',
-    prep:'⚡ 売り枯れ+大局OK',
-    partial:'🟡 条件2/3',
-    dry:'🟣 売り枯れ検出'
+function addLog(state,v3,v5,dry,price,candleTime){
+  const labels={
+    full:{icon:'🟢',msg:'本シグナル',col:'var(--green)'},
+    prep:{icon:'🟡',msg:'VQ-3先行シグナル',col:'var(--yellow)'},
+    warn:{icon:'🟡',msg:'VQ-3上昇中',col:'var(--yellow)'},
+    dry: {icon:'🟣',msg:'売り枯れ検出',col:'var(--purple)'}
   };
-  const colors={full:'var(--green)',prep:'var(--purple)',partial:'var(--yellow)',dry:'var(--purple)'};
-  const t=new Date().toLocaleTimeString('ja-JP');
-  sigLog.unshift({t,state,v5,v50,dry,price,msg:msgs[state]||state,col:colors[state]||'var(--dim)'});
-  if(sigLog.length>10)sigLog.pop();
+  const l=labels[state]||{icon:'⏸',msg:state,col:'var(--dim)'};
+  const now=new Date();
+  sigLog.unshift({
+    nowTime:now.toLocaleTimeString('ja-JP'),
+    candleTime:candleTime.toLocaleTimeString('ja-JP'),
+    state,v3,v5,dry,price,
+    icon:l.icon,msg:l.msg,col:l.col
+  });
+  if(sigLog.length>20)sigLog.pop();
   renderLog();
 }
 
 function renderLog(){
   const body=document.getElementById('logBody');
-  if(!sigLog.length){body.innerHTML='<div class="log-row"><span class="log-msg" style="color:var(--dim)">シグナル待ち...</span></div>';return;}
+  if(!sigLog.length){body.innerHTML='<div class="log-empty">シグナル待ち...</div>';return;}
   body.innerHTML=sigLog.map(l=>`
     <div class="log-row">
-      <span class="log-time">${l.t}</span>
-      <span class="log-msg" style="color:${l.col}">${l.msg}</span>
-      <span style="font-family:var(--mono);font-size:8px;color:var(--dim)">VQ5:${l.v5.toFixed(1)} V50:${l.v50.toFixed(1)} D:${l.dry.toFixed(2)}</span>
+      <div>
+        <div class="log-time">${l.nowTime}</div>
+        <div class="log-time" style="color:rgba(90,122,154,.6);font-size:7px">足:${l.candleTime}</div>
+      </div>
+      <div class="log-msg" style="color:${l.col}">${l.icon} ${l.msg}</div>
+      <div class="log-detail">
+        <div>V3:${(l.v3||0).toFixed(1)} V5:${(l.v5||0).toFixed(1)}</div>
+        <div>D:${(l.dry||0).toFixed(2)} $${Math.round(l.price||0).toLocaleString('en-US')}</div>
+      </div>
     </div>`).join('');
 }
 
-// ── Draw main chart (VQ5 + VQ50 + Price) ──
+function clearLog(){sigLog=[];lastSigState='';renderLog();}
+
+// ── Draw main chart ──
 function drawMain(){
   const cv=document.getElementById('mc');
   const dpr=window.devicePixelRatio||1;
   const W=cv.parentElement.offsetWidth;
-  const H=Math.min(260,window.innerHeight*0.32);
+  const H=Math.min(280,window.innerHeight*0.34);
   cv.width=W*dpr;cv.height=H*dpr;
   cv.style.width=W+'px';cv.style.height=H+'px';
   const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
 
   const PAD={top:10,right:52,bottom:22,left:36};
   const cw=W-PAD.left-PAD.right,ch=H-PAD.top-PAD.bottom;
-  const n=candles.length;
-  if(n<2)return;
+  const n=candles.length;if(n<2)return;
 
   // VQ Y (left)
-  const vqMax=Math.max(...vq5S.filter(v=>v!==null),...vq50S.filter(v=>v!==null),4);
+  const allVQ=[...vq3S,...vq5S].filter(v=>v!==null&&v!==undefined&&isFinite(v)&&v>0);
+  const vqMax=allVQ.length?Math.min(Math.max(...allVQ,4),15):15;
   const xStep=cw/(n-1);
   const xOf=i=>PAD.left+i*xStep;
   const yVQ=v=>PAD.top+ch*(1-v/vqMax);
@@ -400,54 +409,94 @@ function drawMain(){
 
   ctx.clearRect(0,0,W,H);
 
-  // Grid + VQ thresholds
+  // Grid
   ctx.setLineDash([2,4]);
-  [TH.vq50,TH.vq5].forEach((t,i)=>{
+  [TH.vq3,TH.vq5].forEach((t,i)=>{
     const y=yVQ(t);
-    ctx.strokeStyle=i===0?'rgba(255,208,0,.2)':'rgba(255,140,0,.25)';
+    ctx.strokeStyle=i===0?'rgba(255,230,0,.25)':'rgba(255,69,0,.25)';
     ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(PAD.left,y);ctx.lineTo(PAD.left+cw,y);ctx.stroke();
-    ctx.fillStyle=i===0?'rgba(255,208,0,.5)':'rgba(255,140,0,.5)';
+    ctx.fillStyle=i===0?'rgba(255,230,0,.6)':'rgba(255,69,0,.6)';
     ctx.font=`8px 'Share Tech Mono'`;ctx.textAlign='right';
     ctx.fillText(t.toFixed(1),PAD.left-3,y+3);
   });
   ctx.setLineDash([]);
 
-  // Price area
+  // ── 1. Price area (背景・最後ろ) ──
   ctx.beginPath();
   priceS.forEach((p,i)=>{i===0?ctx.moveTo(xOf(i),yPr(p)):ctx.lineTo(xOf(i),yPr(p));});
   ctx.lineTo(xOf(n-1),PAD.top+ch);ctx.lineTo(xOf(0),PAD.top+ch);ctx.closePath();
   const pg=ctx.createLinearGradient(0,PAD.top,0,PAD.top+ch);
-  pg.addColorStop(0,'rgba(0,170,255,.08)');pg.addColorStop(1,'rgba(0,170,255,0)');
+  pg.addColorStop(0,'rgba(0,170,255,.1)');pg.addColorStop(1,'rgba(0,170,255,0)');
   ctx.fillStyle=pg;ctx.fill();
-  ctx.beginPath();
-  priceS.forEach((p,i)=>{i===0?ctx.moveTo(xOf(i),yPr(p)):ctx.lineTo(xOf(i),yPr(p));});
-  ctx.strokeStyle='rgba(0,170,255,.45)';ctx.lineWidth=1.2;ctx.stroke();
 
-  // Entry signal zones (green background when all 3 met)
+  // ── 2. VQ-5 line (オレンジ・細・後ろ) ──
+  ctx.beginPath();let s5b=false;
+  vq5S.forEach((v,i)=>{
+    if(!isFinite(v))return;
+    const x=xOf(i),y=yVQ(Math.min(v,vqMax));
+    s5b?ctx.lineTo(x,y):ctx.moveTo(x,y);s5b=true;
+  });
+  ctx.strokeStyle='rgba(255,69,0,.75)';ctx.lineWidth=1.4;ctx.stroke();
+
+  // ── 3. VQ-3 line (黄色・細) ──
+  ctx.beginPath();let s3b=false;
+  vq3S.forEach((v,i)=>{
+    if(!isFinite(v))return;
+    const x=xOf(i),y=yVQ(Math.min(v,vqMax));
+    s3b?ctx.lineTo(x,y):ctx.moveTo(x,y);s3b=true;
+  });
+  ctx.strokeStyle='rgba(255,230,0,.8)';ctx.lineWidth=1.4;ctx.stroke();
+
+  // ── 4. Entry zones (全条件達成ゾーン) ──
   for(let i=1;i<n;i++){
-    const v5=vq5S[i]||0,v50=vq50S[i]||0,dry=dryS[i];
-    if(v5>=TH.vq5&&v50>=TH.vq50&&dry<=TH.dry){
-      ctx.fillStyle='rgba(0,255,136,.07)';
+    const v5=vq5S[i]||0,dry=dryS[i];
+    if(v5>=TH.vq5&&dry<=TH.dry){
+      ctx.fillStyle='rgba(0,255,136,.06)';
       ctx.fillRect(xOf(i-1),PAD.top,xStep,ch);
     }
   }
 
-  // VQ-50 line (yellow, smooth)
-  ctx.beginPath();let s50=false;
-  vq50S.forEach((v,i)=>{if(v===null)return;const x=xOf(i),y=yVQ(v);s50?ctx.lineTo(x,y):ctx.moveTo(x,y);s50=true;});
-  ctx.strokeStyle='#FFD000';ctx.lineWidth=2;ctx.stroke();
+  // ── 5. VQ-3 先行シグナルマーカー (黄丸＋時間) ──
+  vq3S.forEach((v,i)=>{
+    if(!isFinite(v)||i===0)return;
+    const prev=vq3S[i-1]||0;
+    if(v>=TH.vq3&&prev<TH.vq3&&dryS[i]<=TH.dry){
+      const x=xOf(i),y=yPr(priceS[i]);
+      ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);
+      ctx.fillStyle='rgba(255,208,0,.85)';ctx.fill();
+      ctx.strokeStyle='rgba(255,208,0,.4)';ctx.lineWidth=1.5;ctx.stroke();
+      const d=new Date(candles[i].ts);
+      const lbl=d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+      ctx.fillStyle='rgba(255,208,0,.9)';ctx.font=`bold 8px 'Share Tech Mono'`;
+      ctx.textAlign='center';ctx.fillText(lbl,x,y-10);
+    }
+  });
 
-  // VQ-5 line (blue)
-  ctx.beginPath();let s5=false;
-  vq5S.forEach((v,i)=>{if(v===null)return;const x=xOf(i),y=yVQ(v);s5?ctx.lineTo(x,y):ctx.moveTo(x,y);s5=true;});
-  ctx.strokeStyle='#FF8C00';ctx.lineWidth=2;ctx.stroke();
+  // ── 6. VQ-5 本シグナルマーカー (赤丸＋時間) ──
+  vq5S.forEach((v,i)=>{
+    if(!isFinite(v)||i===0)return;
+    const prev=vq5S[i-1]||0;
+    if(v>=TH.vq5&&prev<TH.vq5&&dryS[i]<=TH.dry){
+      const x=xOf(i),y=yPr(priceS[i]);
+      ctx.beginPath();ctx.arc(x,y,6,0,Math.PI*2);
+      ctx.fillStyle='rgba(255,58,58,.9)';ctx.fill();
+      const d=new Date(candles[i].ts);
+      const lbl=d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+      ctx.fillStyle='rgba(255,100,100,.95)';ctx.font=`bold 8px 'Share Tech Mono'`;
+      ctx.textAlign='center';ctx.fillText(lbl,x,y+18);
+    }
+  });
 
-  // Last dots
-  const lv5=vq5S[n-1],lv50=vq50S[n-1];
-  if(lv5){ctx.beginPath();ctx.arc(xOf(n-1),yVQ(lv5),4,0,Math.PI*2);ctx.fillStyle='#FF8C00';ctx.fill();}
-  if(lv50){ctx.beginPath();ctx.arc(xOf(n-1),yVQ(lv50),4,0,Math.PI*2);ctx.fillStyle='#FFD000';ctx.fill();}
+  // ── 7. Price line (前面・太・最前) ──
+  ctx.beginPath();
+  priceS.forEach((p,i)=>{i===0?ctx.moveTo(xOf(i),yPr(p)):ctx.lineTo(xOf(i),yPr(p));});
+  ctx.strokeStyle='rgba(0,170,255,.85)';ctx.lineWidth=2;ctx.stroke();
 
-  // Price right Y labels
+  // Price last dot
+  ctx.beginPath();ctx.arc(xOf(n-1),yPr(priceS[n-1]),4,0,Math.PI*2);
+  ctx.fillStyle='#00AAFF';ctx.fill();
+
+  // Right Y (Price)
   ctx.textAlign='left';ctx.font=`8px 'Share Tech Mono'`;
   for(let i=0;i<=3;i++){
     const p=pMin+pRange*i/3,y=yPr(p);
@@ -458,17 +507,17 @@ function drawMain(){
 
   // X axis
   ctx.textAlign='center';ctx.fillStyle='rgba(90,122,154,.5)';
-  for(let i=0;i<=4;i++){
-    const idx=Math.round(i*(n-1)/4);
+  for(let i=0;i<=5;i++){
+    const idx=Math.round(i*(n-1)/5);
     const d=new Date(candles[idx].ts);
     const lbl=(d.getMonth()+1)+'/'+d.getDate()+' '+d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
     ctx.fillText(lbl,xOf(idx),PAD.top+ch+14);
   }
 }
 
-// ── Draw sell-dry chart ──
-function drawDry(){
-  const cv=document.getElementById('dc');
+// ── Draw volume chart ──
+function drawVolume(){
+  const cv=document.getElementById('vc');
   const dpr=window.devicePixelRatio||1;
   const W=cv.parentElement.offsetWidth;
   const H=90;
@@ -476,52 +525,141 @@ function drawDry(){
   cv.style.width=W+'px';cv.style.height=H+'px';
   const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
 
-  const PAD={top:6,right:36,bottom:18,left:36};
+  const PAD={top:6,right:52,bottom:18,left:36};
   const cw=W-PAD.left-PAD.right,ch=H-PAD.top-PAD.bottom;
   const n=candles.length;if(n<2)return;
 
-  const dMax=Math.max(...dryS,2);
+  const vMax=Math.max(...volS)*1.05||1;
   const xStep=cw/(n-1);
   const xOf=i=>PAD.left+i*xStep;
-  const yD=d=>PAD.top+ch*(1-d/dMax);
+  const yV=v=>PAD.top+ch*(1-v/vMax);
 
   ctx.clearRect(0,0,W,H);
 
-  // 0.5 line
-  const yH=yD(TH.dry);
-  ctx.strokeStyle='rgba(168,85,247,.4)';ctx.lineWidth=1;ctx.setLineDash([3,4]);
-  ctx.beginPath();ctx.moveTo(PAD.left,yH);ctx.lineTo(PAD.left+cw,yH);ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.fillStyle='rgba(168,85,247,.5)';ctx.font=`8px 'Share Tech Mono'`;
-  ctx.textAlign='right';ctx.fillText('0.5',PAD.left-3,yH+3);
+  // Volume bars
+  const barW=Math.max(1,xStep*0.7);
+  volS.forEach((v,i)=>{
+    const c=candles[i];
+    const aboveMA=volMA[i]&&v>volMA[i];
+    const bullBar=c.close>=c.open;
+    ctx.fillStyle=aboveMA
+      ? (bullBar?'rgba(0,255,136,.7)':'rgba(255,58,58,.7)')
+      : (bullBar?'rgba(0,255,136,.3)':'rgba(255,58,58,.3)');
+    const barH=ch-(yV(v)-PAD.top);
+    ctx.fillRect(xOf(i)-barW/2, yV(v), barW, barH);
+  });
 
-  // Sell-dry area
+  // MA line (orange)
+  ctx.beginPath();let sma=false;
+  volMA.forEach((v,i)=>{
+    if(!v)return;
+    const x=xOf(i),y=yV(v);
+    sma?ctx.lineTo(x,y):ctx.moveTo(x,y);sma=true;
+  });
+  ctx.strokeStyle='rgba(255,140,0,.85)';ctx.lineWidth=1.5;ctx.stroke();
+
+  // Y labels
+  ctx.textAlign='left';ctx.font=`8px 'Share Tech Mono'`;ctx.fillStyle='rgba(90,122,154,.4)';
+  const fv2=v=>v>=1e9?(v/1e9).toFixed(1)+'B':v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':v.toFixed(0);
+  ctx.fillText(fv2(vMax),PAD.left+cw+3,PAD.top+8);
+  ctx.fillText(fv2(vMax/2),PAD.left+cw+3,PAD.top+ch/2+3);
+
+  // X axis
+  ctx.textAlign='center';ctx.fillStyle='rgba(90,122,154,.4)';
+  for(let i=0;i<=4;i++){
+    const idx=Math.round(i*(n-1)/4);
+    const d=new Date(candles[idx].ts);
+    ctx.fillText(d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'),xOf(idx),PAD.top+ch+12);
+  }
+}
+
+// ── Draw sell-dry ──
+function drawDry(){
+  const cv=document.getElementById('dc');
+  const dpr=window.devicePixelRatio||1;
+  const W=cv.parentElement.offsetWidth;
+  const H=100;
+  cv.width=W*dpr;cv.height=H*dpr;
+  cv.style.width=W+'px';cv.style.height=H+'px';
+  const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
+
+  const PAD={top:8,right:80,bottom:18,left:36};
+  const cw=W-PAD.left-PAD.right,ch=H-PAD.top-PAD.bottom;
+  const n=candles.length;if(n<2)return;
+
+  const validDry=dryS.filter(v=>isFinite(v)&&v>=0);
+  const dMax=validDry.length?Math.min(Math.max(...validDry,2),4):2;
+  const xStep=cw/(n-1);
+  const xOf=i=>PAD.left+i*xStep;
+  const yD=d=>PAD.top+ch*(1-Math.min(d,dMax)/dMax);
+  const yHalf=yD(TH.dry);
+
+  ctx.clearRect(0,0,W,H);
+
+  // 0.5以下の危険ゾーンを赤背景で強調
+  ctx.fillStyle='rgba(255,58,58,.1)';
+  ctx.fillRect(PAD.left,yHalf,cw,PAD.top+ch-yHalf);
+
+  // 0.5ラインを太い実線で
+  ctx.strokeStyle='rgba(255,80,80,.8)';ctx.lineWidth=2;ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(PAD.left,yHalf);ctx.lineTo(PAD.left+cw,yHalf);ctx.stroke();
+
+  // 右側ラベル「← 売り枯れ」
+  ctx.fillStyle='rgba(255,100,100,.95)';
+  ctx.font=`bold 9px 'Share Tech Mono'`;
+  ctx.textAlign='left';
+  ctx.fillText('← 売り枯れ',PAD.left+cw+4,yHalf+4);
+  ctx.fillStyle='rgba(255,100,100,.7)';
+  ctx.font=`8px 'Share Tech Mono'`;
+  ctx.textAlign='right';
+  ctx.fillText('0.5',PAD.left-3,yHalf+4);
+
+  // 上限ラベル
+  ctx.fillStyle='rgba(90,122,154,.4)';
+  ctx.textAlign='right';
+  ctx.fillText(dMax.toFixed(0),PAD.left-3,PAD.top+8);
+
+  // Area fill
   ctx.beginPath();
-  dryS.forEach((d,i)=>{i===0?ctx.moveTo(xOf(i),yD(d)):ctx.lineTo(xOf(i),yD(d));});
+  dryS.forEach((d,i)=>{
+    const cd=Math.min(d||0,dMax);
+    i===0?ctx.moveTo(xOf(i),yD(cd)):ctx.lineTo(xOf(i),yD(cd));
+  });
   ctx.lineTo(xOf(n-1),PAD.top+ch);ctx.lineTo(xOf(0),PAD.top+ch);ctx.closePath();
   const g=ctx.createLinearGradient(0,PAD.top,0,PAD.top+ch);
-  g.addColorStop(0,'rgba(168,85,247,.2)');g.addColorStop(1,'rgba(168,85,247,0)');
+  g.addColorStop(0,'rgba(168,85,247,.22)');g.addColorStop(1,'rgba(168,85,247,0)');
   ctx.fillStyle=g;ctx.fill();
 
-  // Line
+  // ライン：0.5以下は赤・太く、以上は紫・細く
   for(let i=1;i<n;i++){
-    const d=dryS[i];
-    ctx.beginPath();ctx.moveTo(xOf(i-1),yD(dryS[i-1]));ctx.lineTo(xOf(i),yD(d));
-    ctx.strokeStyle=d<TH.dry?'#A855F7':'rgba(168,85,247,.35)';ctx.lineWidth=1.5;ctx.stroke();
+    const d=Math.min(dryS[i]||0,dMax);
+    const dp=Math.min(dryS[i-1]||0,dMax);
+    ctx.beginPath();ctx.moveTo(xOf(i-1),yD(dp));ctx.lineTo(xOf(i),yD(d));
+    ctx.strokeStyle=d<TH.dry?'rgba(255,80,80,.9)':'rgba(168,85,247,.45)';
+    ctx.lineWidth=d<TH.dry?2.2:1.2;
+    ctx.stroke();
   }
 
-  // Red signal dots
+  // シグナルマーカー（赤丸・大＋時間）
   dryS.forEach((d,i)=>{
-    if(d<TH.dry&&i>0&&dryS[i-1]>=TH.dry){
-      ctx.beginPath();ctx.arc(xOf(i),yD(d),5,0,Math.PI*2);
+    if(d<TH.dry&&i>0&&(dryS[i-1]||0)>=TH.dry){
+      const x=xOf(i),y=yD(Math.min(d,dMax));
+      ctx.beginPath();ctx.arc(x,y,7,0,Math.PI*2);
       ctx.fillStyle='#FF3A3A';ctx.fill();
+      ctx.strokeStyle='rgba(255,150,150,.5)';ctx.lineWidth=2;ctx.stroke();
+      const t=new Date(candles[i].ts);
+      const lbl=t.getHours().toString().padStart(2,'0')+':'+t.getMinutes().toString().padStart(2,'0');
+      ctx.fillStyle='rgba(255,130,130,.95)';
+      ctx.font=`bold 9px 'Share Tech Mono'`;
+      ctx.textAlign='center';
+      ctx.fillText(lbl,x,y-12);
     }
   });
 
   // X axis
   ctx.textAlign='center';ctx.fillStyle='rgba(90,122,154,.4)';ctx.font=`8px 'Share Tech Mono'`;
-  for(let i=0;i<=3;i++){
-    const idx=Math.round(i*(n-1)/3);
+  for(let i=0;i<=4;i++){
+    const idx=Math.round(i*(n-1)/4);
     const d=new Date(candles[idx].ts);
     ctx.fillText(d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'),xOf(idx),PAD.top+ch+12);
   }
@@ -544,6 +682,7 @@ async function updateData(){
     buildSeries(candles);
     evalSignal();
     drawMain();
+    drawVolume();
     drawDry();
     setStatus('live');
   }catch(e){setStatus('error',e.message);}
@@ -553,19 +692,19 @@ async function updateData(){
 function setCoin(el){
   sym=el.dataset.sym;symLabel=el.dataset.label;
   document.querySelectorAll('.coin').forEach(c=>c.classList.remove('on'));
-  el.classList.add('on');sigLog=[];lastSigState='';updateData();
+  el.classList.add('on');sigLog=[];lastSigState='';renderLog();updateData();
 }
 function setIv(el){
   interval=el.dataset.iv;limit=+el.dataset.limit;
   document.querySelectorAll('.ivbtn').forEach(b=>b.classList.remove('on'));
-  el.classList.add('on');sigLog=[];lastSigState='';updateData();
+  el.classList.add('on');sigLog=[];lastSigState='';renderLog();updateData();
 }
 function doRefresh(){
   const b=document.getElementById('rfBtn');
   b.classList.add('spin');setTimeout(()=>b.classList.remove('spin'),500);
   updateData();
 }
-window.addEventListener('resize',()=>{if(candles.length){drawMain();drawDry();}});
+window.addEventListener('resize',()=>{if(candles.length){drawMain();drawVolume();drawDry();}});
 
 updateData();
 autoTimer=setInterval(updateData,60000);
