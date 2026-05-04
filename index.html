@@ -4,7 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>VQ Signal v10 — REDFORDメソッド</title>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="VQ SIGNAL">
+<meta name="theme-color" content="#00FF88">
+<meta name="description" content="BTC VQ比シグナル監視 — REDFORDメソッド">
+<!-- PWA manifest -->
+<link rel="manifest" href="manifest.json">
+<!-- iOS ホーム画面アイコン -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%23060A0E'/><text y='140' x='15' font-size='130'>⚡</text></svg>">
+<title>VQ Signal — REDFORDメソッド</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -98,6 +106,21 @@ canvas{width:100%;display:block;}
 <body>
 
 <div class="hdr">
+<!-- PWAホーム画面追加ヒント -->
+<div id="pwaHint" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:1000;background:rgba(12,17,24,.97);border-top:1px solid var(--green);padding:14px 16px;flex-direction:column;gap:8px;align-items:center;">
+  <div style="font-family:var(--mono);font-size:11px;color:var(--green);letter-spacing:.1em;text-align:center;">
+    ⚡ ホーム画面に追加するとバックグラウンドでも通知が届きます
+  </div>
+  <div style="font-size:10px;color:var(--text2);text-align:center;line-height:1.6;">
+    Safari下部の 
+    <span style="color:var(--blue)">共有ボタン（↑）</span> 
+    →「ホーム画面に追加」をタップ
+  </div>
+  <button onclick="document.getElementById('pwaHint').style.display='none'" 
+    style="background:none;border:1px solid var(--border);color:var(--dim);font-family:var(--mono);font-size:10px;padding:4px 16px;border-radius:6px;cursor:pointer;">
+    閉じる
+  </button>
+</div>
   <div class="hdr-left">
     <div class="hdr-dot"></div>
     <div>
@@ -106,6 +129,7 @@ canvas{width:100%;display:block;}
     </div>
   </div>
   <div class="hdr-right">
+    <button id="notifBtn" class="hdr-btn" style="width:auto;padding:0 8px;font-size:10px;font-family:var(--mono);letter-spacing:.05em;" onclick="requestNotifPermission()">🔔 通知許可</button>
     <span class="live-badge">●LIVE</span>
     <button class="hdr-btn" id="rfBtn" onclick="doRefresh()">↻</button>
   </div>
@@ -329,6 +353,15 @@ function evalSignal(){
 
   if(state!==lastSigState&&state!=='none'){
     addLog(state,v3,v5,dry,price,new Date(candles[n-1].ts));
+    // 通知送信
+    const p=price>=1000?'$'+Math.round(price).toLocaleString('en-US'):'$'+price.toFixed(2);
+    if(state==='full'){
+      sendNotif(`🟢 本シグナル — ${symLabel}`,`VQ-5:${v5.toFixed(2)} 売り枯れ:${dry.toFixed(2)} 価格:${p}`,'high');
+    } else if(state==='prep'){
+      sendNotif(`🟠 VQ-3先行シグナル — ${symLabel}`,`VQ-3:${v3.toFixed(2)} 売り枯れ:${dry.toFixed(2)} 価格:${p}`,'medium');
+    } else if(state==='dry'){
+      sendNotif(`🟣 売り枯れ検出 — ${symLabel}`,`売り枯れ率:${dry.toFixed(2)} VQ-3:${v3.toFixed(2)} 価格:${p}`,'normal');
+    }
     lastSigState=state;
   }
 }
@@ -673,6 +706,62 @@ function setStatus(s,m=''){
   else{d.className='sdot err';t.textContent='エラー: '+m;}
 }
 
+// ── Push通知 ──
+let notifEnabled = false;
+
+async function requestNotifPermission(){
+  if(!('Notification' in window)){
+    alert('このブラウザはプッシュ通知に対応していません。');
+    return;
+  }
+  const perm = await Notification.requestPermission();
+  notifEnabled = perm === 'granted';
+  updateNotifBtn();
+  if(notifEnabled){
+    new Notification('VQ SIGNAL 通知ON', {
+      body: '🔔 シグナルが出たらお知らせします',
+      icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%2300FF88"/><text y=".9em" font-size="80" x="10">⚡</text></svg>'
+    });
+  }
+}
+
+function updateNotifBtn(){
+  const btn = document.getElementById('notifBtn');
+  if(!btn) return;
+  if(!('Notification' in window)){
+    btn.textContent='通知非対応';btn.style.opacity='0.4';return;
+  }
+  if(Notification.permission==='granted'){
+    btn.textContent='🔔 通知ON';
+    btn.style.borderColor='var(--green)';btn.style.color='var(--green)';
+    notifEnabled=true;
+  } else if(Notification.permission==='denied'){
+    btn.textContent='🔕 通知OFF';
+    btn.style.borderColor='var(--red)';btn.style.color='var(--red)';
+    notifEnabled=false;
+  } else {
+    btn.textContent='🔔 通知許可';
+    btn.style.borderColor='var(--yellow)';btn.style.color='var(--yellow)';
+  }
+}
+
+function sendNotif(title, body, urgency='normal'){
+  if(!notifEnabled||Notification.permission!=='granted') return;
+  const icons={
+    high:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%2300FF88"/><text y=".9em" font-size="70" x="15">🟢</text></svg>',
+    medium:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%23FFD000"/><text y=".9em" font-size="70" x="15">⚡</text></svg>',
+    normal:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%23A855F7"/><text y=".9em" font-size="70" x="15">🟣</text></svg>'
+  };
+  try{
+    new Notification(title, {
+      body,
+      icon: icons[urgency]||icons.normal,
+      tag: 'vq-signal', // 同じtagは重複しない
+      requireInteraction: urgency==='high' // 高優先は手動で閉じるまで残る
+    });
+  }catch(e){console.warn('通知エラー:',e);}
+}
+
 // ── Main ──
 async function updateData(){
   setStatus('ld');
@@ -708,6 +797,35 @@ window.addEventListener('resize',()=>{if(candles.length){drawMain();drawVolume()
 
 updateData();
 autoTimer=setInterval(updateData,60000);
+
+// 通知ボタンの初期状態を設定
+updateNotifBtn();
+
+// ── Service Worker 登録（PWA） ──
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js', {scope:'/vq-ratio/'})
+    .then(reg => {
+      console.log('✅ SW登録成功:', reg.scope);
+    })
+    .catch(err => console.warn('SW登録失敗:', err));
+}
+
+// ── PWAホーム画面追加の案内 ──
+window.addEventListener('load', ()=>{
+  // iOSの場合、スタンドアロンモードでなければ案内を表示
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.navigator.standalone === true;
+  if(isIOS && !isStandalone){
+    // 初回訪問時のみ案内（sessionStorageで管理）
+    if(!sessionStorage.getItem('pwa-hint-shown')){
+      sessionStorage.setItem('pwa-hint-shown','1');
+      setTimeout(()=>{
+        const hint = document.getElementById('pwaHint');
+        if(hint) hint.style.display='flex';
+      }, 3000);
+    }
+  }
+});
 </script>
 </body>
 </html>
