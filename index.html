@@ -75,7 +75,9 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 .chart-hdr{padding:8px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;}
 .chart-title{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--text2);}
 .legend{display:flex;flex-wrap:wrap;gap:8px;}
-.leg{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:8px;color:var(--dim);}
+.leg{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:8px;color:var(--dim);cursor:pointer;padding:2px 5px;border-radius:4px;border:1px solid transparent;transition:all .15s;user-select:none;}
+.leg:hover{border-color:var(--border);}
+.leg.off{opacity:.22;text-decoration:line-through;}
 .leg-line{width:14px;height:2px;border-radius:1px;}
 .leg-dot{width:8px;height:8px;border-radius:50%;}
 canvas{width:100%;display:block;}
@@ -195,7 +197,7 @@ canvas{width:100%;display:block;}
   <div class="chart-hdr">
     <div class="chart-title">VQ-3 / VQ-5 / BTC価格</div>
     <div class="legend">
-      <div class="leg"><div class="leg-line" style="background:var(--yellow)"></div>VQ-3 先行</div>
+      <div class="leg off" id="leg-vq3" onclick="toggleVQ3()" title="クリックでON/OFF" style="cursor:pointer;"><div class="leg-line" style="background:var(--yellow)"></div>VQ-3 先行</div>
       <div class="leg"><div class="leg-line" style="background:var(--orange)"></div>VQ-5 本</div>
       <div class="leg"><div class="leg-line" style="background:var(--blue)"></div>価格</div>
       <div class="leg"><div class="leg-dot" style="background:var(--red)"></div>シグナル</div>
@@ -248,6 +250,15 @@ let candles=[], vq3S=[], vq5S=[], dryS=[], priceS=[], volS=[], volMA=[];
 let sigLog=[], lastSigState='', autoTimer=null;
 
 const TH={vq3:2.5, dry:0.5, vq5:3.0};
+
+// VQ-3はデフォルトOFF
+const layers={vq3:false};
+function toggleVQ3(){
+  layers.vq3=!layers.vq3;
+  const el=document.getElementById('leg-vq3');
+  if(el) el.classList.toggle('off',!layers.vq3);
+  if(candles.length){drawMain();drawVolume();drawDry();}
+}
 
 // ── Fetch ──
 async function fetchKlines(){
@@ -472,14 +483,16 @@ function drawMain(){
   });
   ctx.strokeStyle='rgba(255,69,0,.75)';ctx.lineWidth=1.4;ctx.stroke();
 
-  // ── 3. VQ-3 line (黄色・細) ──
-  ctx.beginPath();let s3b=false;
-  vq3S.forEach((v,i)=>{
-    if(!isFinite(v))return;
-    const x=xOf(i),y=yVQ(Math.min(v,vqMax));
-    s3b?ctx.lineTo(x,y):ctx.moveTo(x,y);s3b=true;
-  });
-  ctx.strokeStyle='rgba(255,230,0,.8)';ctx.lineWidth=1.4;ctx.stroke();
+  // ── 3. VQ-3 line (黄色・細・デフォルトOFF) ──
+  if(layers.vq3){
+    ctx.beginPath();let s3b=false;
+    vq3S.forEach((v,i)=>{
+      if(!isFinite(v))return;
+      const x=xOf(i),y=yVQ(Math.min(v,vqMax));
+      s3b?ctx.lineTo(x,y):ctx.moveTo(x,y);s3b=true;
+    });
+    ctx.strokeStyle='rgba(255,230,0,.8)';ctx.lineWidth=1.4;ctx.stroke();
+  }
 
   // ── 4. Entry zones (全条件達成ゾーン) ──
   for(let i=1;i<n;i++){
