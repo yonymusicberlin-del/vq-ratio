@@ -575,16 +575,37 @@ async function fetchAndRender(sym, bp){
     updCond('cond2','c2v','c2s',dry.toFixed(2),c2?`✅ ${dry.toFixed(2)} < ${TH.dry}`:`❌ ${dry.toFixed(2)} ≥ ${TH.dry}`,c2,'var(--purple)');
     updCond('cond3','c3v','c3s',v5.toFixed(2),c3?`✅ ${v5.toFixed(2)} ≥ ${TH.vq5}`:`❌ ${v5.toFixed(2)} < ${TH.vq5}`,c3,'var(--orange)');
 
-    // Signal box
+    // Signal box — VQ-5本命が主軸、VQ-3は先行補助
     const box=document.getElementById('sigBox');
     const title=document.getElementById('sigTitle');
     const sub=document.getElementById('sigSub');
     const icon=box.querySelector('.sig-icon');
-    if(c3&&c2){box.className='sig-box full';icon.textContent='🟢';title.textContent='本シグナル — エントリー確認';title.style.color='var(--green)';sub.textContent='VQ-5突破 + 売り枯れ確認';}
-    else if(c1&&c2){box.className='sig-box prep';icon.textContent='🟠';title.textContent='VQ-3先行シグナル';title.style.color='var(--yellow)';sub.textContent='VQ-5突破（≥3.0）を待つ';}
-    else if(c2){box.className='sig-box dry';icon.textContent='🟣';title.textContent='売り枯れ検出';title.style.color='var(--purple)';sub.textContent='VQ上昇を待つ';}
-    else if(c1){box.className='sig-box warn';icon.textContent='🟡';title.textContent='VQ-3上昇中';title.style.color='var(--yellow)';sub.textContent='売り枯れ率の低下を確認';}
-    else{box.className='sig-box';icon.textContent='⏸';title.textContent='様子見';title.style.color='var(--dim)';sub.textContent='条件未達成';}
+    if(c3&&c2){
+      // ◉ 本命GO: VQ-5突破 + 売り枯れ
+      box.className='sig-box full';icon.textContent='🟢';
+      title.textContent='本シグナル — エントリー確認';title.style.color='var(--green)';
+      sub.textContent='VQ-5突破 + 売り枯れ確認 ─ BPとの距離を確認してエントリー';
+    } else if(c3&&!c2){
+      // VQ-5突破しているが売り枯れ未確認
+      box.className='sig-box warn';icon.textContent='🟡';
+      title.textContent='VQ-5突破 — 売り枯れ待ち';title.style.color='var(--yellow)';
+      sub.textContent=`VQ-5: ${v5.toFixed(2)} ✅ ─ 売り枯れ率 ${dry.toFixed(2)} がまだ0.5以上`;
+    } else if(c1&&c2&&!c3){
+      // VQ-3先行 + 売り枯れ → VQ-5待ち
+      box.className='sig-box prep';icon.textContent='🟠';
+      title.textContent='VQ-3先行シグナル';title.style.color='var(--orange)';
+      sub.textContent=`VQ-3: ${v3.toFixed(2)} ✅ + 売り枯れ ✅ ─ VQ-5突破（≥${TH.vq5}）を待つ`;
+    } else if(c2&&!c1&&!c3){
+      // 売り枯れのみ → VQ上昇待ち
+      box.className='sig-box dry';icon.textContent='🟣';
+      title.textContent='売り枯れ検出';title.style.color='var(--purple)';
+      sub.textContent=`売り枯れ率: ${dry.toFixed(2)} ✅ ─ VQ-3/VQ-5の上昇を待つ`;
+    } else {
+      // 様子見 = VQ-5未達成
+      box.className='sig-box';icon.textContent='⏸';
+      title.textContent='様子見 — VQ-5未達成';title.style.color='var(--dim)';
+      sub.textContent=`VQ-5: ${v5.toFixed(2)} / ${TH.vq5} ─ 本命シグナルなし`;
+    }
 
     // TRUSS panel
     if(bp>0){
@@ -715,10 +736,11 @@ function drawMain(bp){
       if(v>=TH.vq5&&(vq5S[i-1]||0)<TH.vq5&&dryS[i]<=TH.dry){
         const x=xOf(i),y=yP(priceS[i]);
         ctx.beginPath();ctx.arc(x,y,6,0,Math.PI*2);ctx.fillStyle='rgba(255,58,58,.9)';ctx.fill();
-      const d=new Date(candles[i].ts);ctx.fillStyle='rgba(255,100,100,.95)';ctx.font=`bold 8px 'Share Tech Mono'`;ctx.textAlign='center';
-      ctx.fillText(`${d.getMonth()+1}/${d.getDate()}`,x,y+18);
-    }
-  });
+        const d=new Date(candles[i].ts);ctx.fillStyle='rgba(255,100,100,.95)';ctx.font=`bold 8px 'Share Tech Mono'`;ctx.textAlign='center';
+        ctx.fillText(`${d.getMonth()+1}/${d.getDate()}`,x,y+18);
+      }
+    });
+  }
 
   // ── 価格ライン（前面） ──
   if(layers.price){
