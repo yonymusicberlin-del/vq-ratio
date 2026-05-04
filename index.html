@@ -12,7 +12,7 @@
 <link rel="manifest" href="manifest.json">
 <!-- iOS ホーム画面アイコン -->
 <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%23060A0E'/><text y='140' x='15' font-size='130'>⚡</text></svg>">
-<title>VQ Signal — REDFORDメソッド</title>
+<title>VQ Signal v2 — REDFORDメソッド</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -330,25 +330,26 @@ function evalSignal(){
     title.textContent='本シグナル';title.style.color='var(--green)';
     sub.textContent='VQ-5突破 + 売り枯れ確認 — エントリー';
     state='full';
+  } else if(c3&&!c2){
+    box.className='sig-box warn';icon.textContent='🟡';
+    title.textContent='VQ-5突破 — 売り枯れ待ち';title.style.color='var(--yellow)';
+    sub.textContent=`VQ-5: ${v5.toFixed(2)} ✅ — 売り枯れ率 ${dry.toFixed(2)} がまだ0.5以上`;
+    state='warn';
   } else if(c1&&c2&&!c3){
     box.className='sig-box prep';icon.textContent='🟠';
-    title.textContent='VQ-3先行シグナル';title.style.color='var(--yellow)';
-    sub.textContent='VQ-3突破 + 売り枯れ — VQ-5突破待ち';
+    title.textContent='VQ-3先行シグナル';title.style.color='var(--orange)';
+    sub.textContent=`VQ-3: ${v3.toFixed(2)} ✅ + 売り枯れ ✅ — VQ-5突破（≥${TH.vq5}）を待つ`;
     state='prep';
-  } else if(c1&&!c2){
-    box.className='sig-box warn';icon.textContent='🟡';
-    title.textContent='VQ-3上昇中';title.style.color='var(--yellow)';
-    sub.textContent='先行シグナル検出 — 売り枯れを待つ';
-    state='warn';
-  } else if(c2){
+  } else if(c2&&!c1&&!c3){
     box.className='sig-box dry';icon.textContent='🟣';
     title.textContent='売り枯れ検出';title.style.color='var(--purple)';
-    sub.textContent='売り手が消えつつある — VQ上昇を待つ';
+    sub.textContent=`売り枯れ率: ${dry.toFixed(2)} ✅ — VQ上昇を待つ`;
     state='dry';
   } else {
     box.className='sig-box';icon.textContent='⏸';
-    title.textContent='様子見';title.style.color='var(--dim)';
-    sub.textContent='条件未達成';state='none';
+    title.textContent='様子見 — VQ-5未達成';title.style.color='var(--dim)';
+    sub.textContent=`VQ-5: ${v5.toFixed(2)} / ${TH.vq5} — 本命シグナルなし`;
+    state='none';
   }
 
   if(state!==lastSigState&&state!=='none'){
@@ -381,7 +382,7 @@ function addLog(state,v3,v5,dry,price,candleTime){
   const labels={
     full:{icon:'🟢',msg:'本シグナル',col:'var(--green)'},
     prep:{icon:'🟡',msg:'VQ-3先行シグナル',col:'var(--yellow)'},
-    warn:{icon:'🟡',msg:'VQ-3上昇中',col:'var(--yellow)'},
+    warn:{icon:'🟡',msg:'VQ-5突破/売枯待',col:'var(--yellow)'},
     dry: {icon:'🟣',msg:'売り枯れ検出',col:'var(--purple)'}
   };
   const l=labels[state]||{icon:'⏸',msg:state,col:'var(--dim)'};
