@@ -279,9 +279,8 @@ function fmtTime(ts){
 }
 function fmtDate(ts){
   const d=new Date(ts);
-  const m=d.toLocaleDateString('de-DE',{timeZone:'Europe/Berlin',month:'numeric'});
-  const day=d.toLocaleDateString('de-DE',{timeZone:'Europe/Berlin',day:'numeric'});
-  return m+'/'+day;
+  const parts=d.toLocaleDateString('en-US',{timeZone:'Europe/Berlin',month:'numeric',day:'numeric'}).split('/');
+  return parts[0]+'/'+parts[1];
 }
 function fmtDateTime(ts){
   return fmtDate(ts)+' '+fmtTime(ts);
@@ -733,7 +732,8 @@ function drawMain(bp){
   }
 
   // ── VQ-3先行マーカー ──
-  if(layers.sig3){
+  const showSig3=layers.sig3&&['5','15','60'].includes(resolution);
+  if(showSig3){
     vq3S.forEach((v,i)=>{
       if(!isFinite(v)||i===0)return;
       if(v>=TH.vq3&&(vq3S[i-1]||0)<TH.vq3&&dryS[i]<=TH.dry){
