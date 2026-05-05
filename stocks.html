@@ -273,6 +273,22 @@ canvas{width:100%;display:block;}
 let APIKEY = localStorage.getItem('vq_polygon_key') || '';
 let resolution = 'D';
 let currentSym = '', currentBP = 0;
+// ── ベルリン時間変換 ──
+function toBerlin(ts){
+  return new Date(new Date(ts).toLocaleString('en-US',{timeZone:'Europe/Berlin'}));
+}
+function fmtTime(ts){
+  const d=toBerlin(ts);
+  return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+}
+function fmtDate(ts){
+  const d=toBerlin(ts);
+  return (d.getMonth()+1)+'/'+d.getDate();
+}
+function fmtDateTime(ts){
+  return fmtDate(ts)+' '+fmtTime(ts);
+}
+
 let candles=[], vq3S=[], vq5S=[], dryS=[], priceS=[], volS=[], volMA=[];
 let watchlist = JSON.parse(localStorage.getItem('vq_watchlist') || '[]');
 const TH = {vq3:2.5, dry:0.5, vq5:3.0};
@@ -640,7 +656,7 @@ async function fetchAndRender(sym, bp){
 
     drawMain(bp);drawVolume();drawDry();
     document.getElementById('sdot').className='sdot live';
-    document.getElementById('stxt').textContent=`LIVE — ${sym} [Polygon.io] ${resolution} ${new Date().toLocaleTimeString('ja-JP')}`;
+    document.getElementById('stxt').textContent=`LIVE — ${sym} [Polygon.io] ${resolution} ${new Date().toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin'})} Berlin`;
   }catch(e){
     document.getElementById('sdot').className='sdot err';
     document.getElementById('stxt').textContent='エラー: '+e.message;
@@ -723,11 +739,8 @@ function drawMain(bp){
       if(v>=TH.vq3&&(vq3S[i-1]||0)<TH.vq3&&dryS[i]<=TH.dry){
         const x=xOf(i),y=yP(priceS[i]);
         ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fillStyle='rgba(255,208,0,.85)';ctx.fill();
-        const d=new Date(candles[i].ts);
         const isIntra=['5','15','60'].includes(resolution);
-        const lbl=isIntra
-          ?`${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`
-          :`${(d.getMonth()+1)}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+        const lbl=isIntra?fmtTime(candles[i].ts):fmtDateTime(candles[i].ts);
         ctx.fillStyle='rgba(255,208,0,.9)';ctx.font=`bold 8px 'Share Tech Mono'`;ctx.textAlign='center';
         ctx.fillText(lbl,x,y-10);
       }
@@ -741,13 +754,10 @@ function drawMain(bp){
       if(v>=TH.vq5&&(vq5S[i-1]||0)<TH.vq5&&dryS[i]<=TH.dry){
         const x=xOf(i),y=yP(priceS[i]);
         ctx.beginPath();ctx.arc(x,y,6,0,Math.PI*2);ctx.fillStyle='rgba(255,58,58,.9)';ctx.fill();
-        const d=new Date(candles[i].ts);
-        const isIntra=['5','15','60'].includes(resolution);
-        const lbl=isIntra
-          ?`${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`
-          :`${(d.getMonth()+1)}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+        const isIntra2=['5','15','60'].includes(resolution);
+        const lbl2=isIntra2?fmtTime(candles[i].ts):fmtDateTime(candles[i].ts);
         ctx.fillStyle='rgba(255,100,100,.95)';ctx.font=`bold 8px 'Share Tech Mono'`;ctx.textAlign='center';
-        ctx.fillText(lbl,x,y+18);
+        ctx.fillText(lbl2,x,y+18);
       }
     });
   }
@@ -767,9 +777,9 @@ function drawMain(bp){
   // ── X軸 日付 ──
   ctx.textAlign='center';ctx.fillStyle='rgba(90,122,154,.5)';ctx.font=`8px 'Share Tech Mono'`;
   for(let i=0;i<=5;i++){
-    const idx=Math.round(i*(n-1)/5);const d=new Date(candles[idx].ts);
+    const idx=Math.round(i*(n-1)/5);
     const intra=['5','15','60'].includes(resolution);
-    const lbl=intra?`${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`:`${d.getMonth()+1}/${d.getDate()}`;
+    const lbl=intra?fmtTime(candles[idx].ts):fmtDate(candles[idx].ts);
     ctx.fillText(lbl,xOf(idx),P.t+ch+14);
   }
 }
@@ -796,7 +806,7 @@ function drawVolume(){
   const fv=v=>v>=1e9?(v/1e9).toFixed(1)+'B':v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':v.toFixed(0);
   ctx.textAlign='left';ctx.font=`8px 'Share Tech Mono'`;ctx.fillStyle='rgba(90,122,154,.4)';ctx.fillText(fv(vMax),P.l+cw+4,P.t+8);
   ctx.textAlign='center';
-  for(let i=0;i<=4;i++){const idx=Math.round(i*(n-1)/4);const d=new Date(candles[idx].ts);ctx.fillText(`${d.getMonth()+1}/${d.getDate()}`,xOf(idx),P.t+ch+12);}
+  for(let i=0;i<=4;i++){const idx=Math.round(i*(n-1)/4);ctx.fillText(fmtDate(candles[idx].ts),xOf(idx),P.t+ch+12);}
 }
 
 function drawDry(){
@@ -831,11 +841,11 @@ function drawDry(){
       const x=xOf(i),y=yD(Math.min(d,dMax));
       ctx.beginPath();ctx.arc(x,y,7,0,Math.PI*2);ctx.fillStyle='#FF3A3A';ctx.fill();
       ctx.strokeStyle='rgba(255,150,150,.5)';ctx.lineWidth=2;ctx.stroke();
-      const t=new Date(candles[i].ts);ctx.fillStyle='rgba(255,130,130,.95)';ctx.font=`bold 9px 'Share Tech Mono'`;ctx.textAlign='center';ctx.fillText(`${t.getMonth()+1}/${t.getDate()}`,x,y-12);
+      ctx.fillStyle='rgba(255,130,130,.95)';ctx.font=`bold 9px 'Share Tech Mono'`;ctx.textAlign='center';ctx.fillText(fmtDate(candles[i].ts),x,y-12);
     }
   });
   ctx.textAlign='center';ctx.fillStyle='rgba(90,122,154,.4)';ctx.font=`8px 'Share Tech Mono'`;
-  for(let i=0;i<=4;i++){const idx=Math.round(i*(n-1)/4);const d=new Date(candles[idx].ts);ctx.fillText(`${d.getMonth()+1}/${d.getDate()}`,xOf(idx),P.t+ch+12);}
+  for(let i=0;i<=4;i++){const idx=Math.round(i*(n-1)/4);ctx.fillText(fmtDate(candles[idx].ts),xOf(idx),P.t+ch+12);}
 }
 
 window.addEventListener('resize',()=>{if(currentSym&&candles.length){drawMain(currentBP);drawVolume();drawDry();}});
