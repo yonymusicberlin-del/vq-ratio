@@ -179,7 +179,7 @@ canvas{width:100%;display:block;}
     </div>
   </div>
   <div class="hdr-right">
-    <span class="api-badge" id="apiBadge">KEY未設定</span>
+    <span class="api-badge" id="apiBadge" style="background:rgba(0,255,136,.15);border-color:rgba(0,255,136,.4);color:var(--green)">●YAHOO</span>
     <button class="hdr-btn" onclick="doRefresh()">↻ 更新</button>
   </div>
 </div>
@@ -188,7 +188,7 @@ canvas{width:100%;display:block;}
 <div class="sidebar">
 
   <!-- API KEY -->
-  <div class="apikey-wrap" id="apikeyWrap">
+  <div class="apikey-wrap" id="apikeyWrap" style="display:none">
     <div class="apikey-title">⚡ POLYGON.IO API KEY</div>
     <div class="apikey-row">
       <input class="apikey-input" id="apikeyInput" type="password" placeholder="APIキーを貼り付け...">
@@ -458,7 +458,42 @@ async function fetchPolygon(ticker, res){
   return d.results.map(b=>({ts:b.t,open:b.o,high:b.h,low:b.l,close:b.c,volume:b.v||0}));
 }
 
-// ─── VQ CALC ──────────────────────────────────────────────
+// ─── FETCH (Yahoo Finance) ────────────────────────────────
+async function fetchYahoo(ticker, res){
+  const resMap={
+    '5' :{interval:'5m', range:'5d'},
+    '15':{interval:'15m',range:'10d'},
+    '60':{interval:'1h', range:'60d'},
+    'D' :{interval:'1d', range:'2y'},
+    'W' :{interval:'1wk',range:'5y'},
+  };
+  const cfg=resMap[res]||resMap['D'];
+  // Yahoo Finance v8 API（CORS対応プロキシ経由）
+  const proxy='https://corsproxy.io/?';
+  const url=`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${cfg.interval}&range=${cfg.range}&includePrePost=false`;
+  const r=await fetch(proxy+encodeURIComponent(url));
+  if(!r.ok) throw new Error(`Yahoo Finance ${r.status}`);
+  const d=await r.json();
+  const chart=d?.chart?.result?.[0];
+  if(!chart) throw new Error(`${ticker} — データなし`);
+  const ts=chart.timestamp;
+  const q=chart.indicators.quote[0];
+  if(!ts||!q) throw new Error(`${ticker} — データ形式エラー`);
+  const candles=[];
+  for(let i=0;i<ts.length;i++){
+    if(q.close[i]==null) continue;
+    candles.push({
+      ts:ts[i]*1000,
+      open:q.open[i]||q.close[i],
+      high:q.high[i]||q.close[i],
+      low:q.low[i]||q.close[i],
+      close:q.close[i],
+      volume:q.volume[i]||0
+    });
+  }
+  if(!candles.length) throw new Error(`${ticker} — 有効データなし`);
+  return candles;
+}
 function calcVQ(cs,endIdx,win){
   const arr=cs.slice(Math.max(0,endIdx-win+1),endIdx+1);
   const bv=[],dv=[];
@@ -556,7 +591,7 @@ function renderDetailSkeleton(sym, bp){
 async function fetchAndRender(sym, bp){
   document.getElementById('ov')?.classList.remove('hide');
   try{
-    candles=await fetchPolygon(sym,resolution);
+    candles=await fetchYahoo(sym,resolution);
     buildSeries(candles);
     const n=candles.length;
     const price=priceS[n-1],first=priceS[0];
@@ -655,7 +690,7 @@ async function fetchAndRender(sym, bp){
 
     drawMain(bp);drawVolume();drawDry();
     document.getElementById('sdot').className='sdot live';
-    document.getElementById('stxt').textContent=`LIVE — ${sym} [Polygon.io] ${resolution} ${new Date().toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin'})} Berlin`;
+    document.getElementById('stxt').textContent=`LIVE — ${sym} [Yahoo Finance] ${resolution} ${new Date().toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin'})} Berlin`;
   }catch(e){
     document.getElementById('sdot').className='sdot err';
     document.getElementById('stxt').textContent='エラー: '+e.message;
