@@ -274,16 +274,14 @@ let APIKEY = localStorage.getItem('vq_polygon_key') || '';
 let resolution = 'D';
 let currentSym = '', currentBP = 0;
 // ── ベルリン時間変換 ──
-function toBerlin(ts){
-  return new Date(new Date(ts).toLocaleString('en-US',{timeZone:'Europe/Berlin'}));
-}
 function fmtTime(ts){
-  const d=new Date(ts);
-  return d.toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit'});
+  return new Date(ts).toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit'});
 }
 function fmtDate(ts){
   const d=new Date(ts);
-  return d.toLocaleDateString('de-DE',{timeZone:'Europe/Berlin',month:'numeric',day:'numeric'});
+  const m=d.toLocaleDateString('de-DE',{timeZone:'Europe/Berlin',month:'numeric'});
+  const day=d.toLocaleDateString('de-DE',{timeZone:'Europe/Berlin',day:'numeric'});
+  return m+'/'+day;
 }
 function fmtDateTime(ts){
   return fmtDate(ts)+' '+fmtTime(ts);
@@ -374,8 +372,10 @@ function loadPreset(sym,bp){
 
 async function loadTicker(sym, bp){
   currentSym=sym; currentBP=bp||0;
-  // Reset layers to all ON for new ticker
-  Object.keys(layers).forEach(k=>{layers[k]=true;});
+  // VQ-3以外をONにリセット（VQ-3はデフォルトOFF）
+  Object.keys(layers).forEach(k=>{layers[k]= k==='vq3' ? false : true;});
+  const legVq3=document.getElementById('leg-vq3');
+  if(legVq3) legVq3.classList.add('off');
   document.getElementById('emptyState').style.display='none';
   document.getElementById('detailPanel').style.display='block';
   renderDetailSkeleton(sym, bp);
@@ -741,7 +741,7 @@ function drawMain(bp){
         ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fillStyle='rgba(255,208,0,.85)';ctx.fill();
         const isIntra=['5','15','60'].includes(resolution);
         const lbl=isIntra?fmtTime(candles[i].ts):fmtDateTime(candles[i].ts);
-        ctx.fillStyle='rgba(255,208,0,.9)';ctx.font=`bold 8px 'Share Tech Mono'`;ctx.textAlign='center';
+        ctx.fillStyle='rgba(255,208,0,.9)';ctx.font=`bold 10px 'Share Tech Mono'`;ctx.textAlign='center';
         ctx.fillText(lbl,x,y-10);
       }
     });
@@ -756,7 +756,7 @@ function drawMain(bp){
         ctx.beginPath();ctx.arc(x,y,6,0,Math.PI*2);ctx.fillStyle='rgba(255,58,58,.9)';ctx.fill();
         const isIntra2=['5','15','60'].includes(resolution);
         const lbl2=isIntra2?fmtTime(candles[i].ts):fmtDateTime(candles[i].ts);
-        ctx.fillStyle='rgba(255,100,100,.95)';ctx.font=`bold 8px 'Share Tech Mono'`;ctx.textAlign='center';
+        ctx.fillStyle='rgba(255,100,100,.95)';ctx.font=`bold 10px 'Share Tech Mono'`;ctx.textAlign='center';
         ctx.fillText(lbl2,x,y+18);
       }
     });
@@ -775,7 +775,7 @@ function drawMain(bp){
   for(let i=0;i<=3;i++){const p=pMin+pR*i/3,y=yP(p);if(y<P.t||y>P.t+ch)continue;ctx.fillStyle='rgba(0,170,255,.35)';ctx.fillText('$'+p.toFixed(0),P.l+cw+4,y+3);}
 
   // ── X軸 日付 ──
-  ctx.textAlign='center';ctx.fillStyle='rgba(90,122,154,.5)';ctx.font=`8px 'Share Tech Mono'`;
+  ctx.textAlign='center';ctx.fillStyle='rgba(90,122,154,.7)';ctx.font=`10px 'Share Tech Mono'`;
   for(let i=0;i<=5;i++){
     const idx=Math.round(i*(n-1)/5);
     const intra=['5','15','60'].includes(resolution);
@@ -853,7 +853,7 @@ window.addEventListener('resize',()=>{if(currentSym&&candles.length){drawMain(cu
 // ─── INIT ─────────────────────────────────────────────────
 applyKeyState();
 renderWatchlist();
-setInterval(()=>{if(APIKEY&&currentSym) loadTicker(currentSym,currentBP);},5*60*1000);
+setInterval(()=>{if(APIKEY&&currentSym) loadTicker(currentSym,currentBP);},60*1000);
 </script>
 </body>
 </html>
