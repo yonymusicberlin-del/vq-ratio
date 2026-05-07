@@ -326,8 +326,8 @@ function saveApiKey(){
 function applyKeyState(){
   const wrap=document.getElementById('apikeyWrap');
   const badge=document.getElementById('apiBadge');
-  if(APIKEY){wrap.style.display='none';badge.textContent='●POLYGON';badge.className='api-badge ok';}
-  else{wrap.style.display='block';badge.textContent='KEY未設定';badge.className='api-badge';}
+  if(wrap) wrap.style.display='none';
+  if(badge){badge.textContent='●FINNHUB';badge.style.background='rgba(0,255,136,.15)';badge.style.borderColor='rgba(0,255,136,.4)';badge.style.color='var(--green)';}
 }
 
 // ─── AUTOCOMPLETE ─────────────────────────────────────────
@@ -354,7 +354,6 @@ function doSearch(){
   const raw=document.getElementById('searchInput').value.trim().toUpperCase();
   document.getElementById('suggestBox').style.display='none';
   if(!raw)return;
-  if(!APIKEY){alert('まずPolygon APIキーを設定してください');return;}
   // Support comma-separated multi-ticker → use first, add rest to watchlist
   const tickers=raw.split(',').map(t=>t.trim()).filter(Boolean);
   const bp=parseFloat(document.getElementById('bpInput').value)||0;
@@ -464,38 +463,34 @@ async function fetchPolygon(ticker, res){
 const FINNHUB_KEY = 'd7s9il1r01qorsvhu2d0d7s9il1r01qorsvhu2dg';
 
 async function fetchFinnhub(ticker, res){
-  const resMap={
-    '5' :'5',
-    '15':'15',
-    '60':'60',
-    'D' :'D',
-    'W' :'W',
-  };
+  const resMap={'5':'5','15':'15','60':'60','D':'D','W':'W'};
   const r=resMap[res]||'D';
   const now=Math.floor(Date.now()/1000);
-  // 期間設定
   const rangeMap={'5':5,'15':10,'60':60,'D':730,'W':1825};
   const days=rangeMap[res]||730;
   const from=now-days*24*3600;
-  const url=`https://finnhub.io/api/v1/stock/candle?symbol=${ticker}&resolution=${r}&from=${from}&to=${now}&token=${FINNHUB_KEY}`;
-  const resp=await fetch(url);
-  if(!resp.ok) throw new Error(`Finnhub ${resp.status}`);
-  const d=await resp.json();
-  if(d.s==='no_data'||!d.t) throw new Error(`${ticker} — データなし`);
-  const candles=[];
-  for(let i=0;i<d.t.length;i++){
-    if(d.c[i]==null) continue;
-    candles.push({
-      ts:d.t[i]*1000,
-      open:d.o[i],
-      high:d.h[i],
-      low:d.l[i],
-      close:d.c[i],
-      volume:d.v[i]||0
-    });
+  const base=`https://finnhub.io/api/v1/stock/candle?symbol=${ticker}&resolution=${r}&from=${from}&to=${now}&token=${FINNHUB_KEY}`;
+  const proxies=[
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(base)}`,
+    `https://corsproxy.io/?${encodeURIComponent(base)}`,
+  ];
+  let lastErr='';
+  for(const url of proxies){
+    try{
+      const resp=await fetch(url);
+      if(!resp.ok){lastErr=`HTTP ${resp.status}`;continue;}
+      const d=await resp.json();
+      if(d.s==='no_data'||!d.t){lastErr='データなし';continue;}
+      const candles=[];
+      for(let i=0;i<d.t.length;i++){
+        if(d.c[i]==null) continue;
+        candles.push({ts:d.t[i]*1000,open:d.o[i],high:d.h[i],low:d.l[i],close:d.c[i],volume:d.v[i]||0});
+      }
+      if(candles.length) return candles;
+      lastErr='有効データなし';
+    }catch(e){lastErr=e.message;}
   }
-  if(!candles.length) throw new Error(`${ticker} — 有効データなし`);
-  return candles;
+  throw new Error(`${ticker} — ${lastErr}`);
 }
 function calcVQ(cs,endIdx,win){
   const arr=cs.slice(Math.max(0,endIdx-win+1),endIdx+1);
@@ -898,7 +893,7 @@ window.addEventListener('resize',()=>{if(currentSym&&candles.length){drawMain(cu
 // ─── INIT ─────────────────────────────────────────────────
 applyKeyState();
 renderWatchlist();
-setInterval(()=>{if(APIKEY&&currentSym) loadTicker(currentSym,currentBP);},60*1000);
+setInterval(()=>{if(currentSym) loadTicker(currentSym,currentBP);},60*1000);
 </script>
 </body>
 </html>
