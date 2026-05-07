@@ -65,6 +65,7 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 .wl-item.active{background:rgba(255,208,0,.06);border:1px solid rgba(255,208,0,.2);}
 .wl-left{display:flex;align-items:center;gap:8px;}
 .wl-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+@keyframes wl-blink{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.3;transform:scale(1.4);}}
 .wl-sym{font-family:var(--mono);font-size:12px;font-weight:bold;}
 .wl-name{font-family:var(--mono);font-size:8px;color:var(--dim);margin-top:1px;}
 .wl-right{text-align:right;}
@@ -179,7 +180,7 @@ canvas{width:100%;display:block;}
     </div>
   </div>
   <div class="hdr-right">
-    <span class="api-badge" id="apiBadge" style="background:rgba(0,255,136,.15);border-color:rgba(0,255,136,.4);color:var(--green)">●YAHOO</span>
+    <span class="api-badge" id="apiBadge" style="background:rgba(0,255,136,.15);border-color:rgba(0,255,136,.4);color:var(--green)">●FINNHUB</span>
     <button class="hdr-btn" onclick="doRefresh()">↻ 更新</button>
   </div>
 </div>
@@ -414,12 +415,13 @@ function renderWatchlist(){
   const el=document.getElementById('watchlist');
   if(!watchlist.length){el.innerHTML='<div class="wl-empty">検索した銘柄が表示されます</div>';return;}
   el.innerHTML=watchlist.map(w=>{
-    const sigCol={full:'var(--green)',prep:'var(--orange)',dry:'var(--purple)',warn:'var(--yellow)',none:'var(--dim)'}[w.sig||'none'];
-    const sigLabel={full:'本シグナル',prep:'VQ-3先行',dry:'売り枯れ',warn:'VQ-3上昇',none:'—'}[w.sig||'none'];
+    const sigCol={full:'var(--green)',vq5:'var(--red)',prep:'var(--orange)',dry:'var(--purple)',warn:'var(--yellow)',none:'var(--dim)'}[w.sig||'none'];
+    const sigLabel={full:'本シグナル',vq5:'VQ-5突破',prep:'VQ-3先行',dry:'売り枯れ',warn:'VQ-3上昇',none:'—'}[w.sig||'none'];
+    const blink=(w.sig==='full'||w.sig==='vq5')?'animation:wl-blink 1s infinite;':'';
     const chgColor=w.chg>=0?'var(--green)':'var(--red)';
     return`<div class="wl-item${currentSym===w.sym?' active':''}" onclick="loadTicker('${w.sym}',${w.bp})">
       <div class="wl-left">
-        <div class="wl-dot" style="background:${sigCol}"></div>
+        <div class="wl-dot" style="background:${sigCol};${blink}"></div>
         <div>
           <div class="wl-sym">${w.sym}</div>
           <div class="wl-name">BP:${w.bp>0?'$'+w.bp:'—'}</div>
@@ -458,53 +460,42 @@ async function fetchPolygon(ticker, res){
   return d.results.map(b=>({ts:b.t,open:b.o,high:b.h,low:b.l,close:b.c,volume:b.v||0}));
 }
 
-// ─── FETCH (Yahoo Finance) ────────────────────────────────
-async function fetchYahoo(ticker, res){
+// ─── FETCH (Finnhub) ────────────────────────────────────
+const FINNHUB_KEY = 'd7s9il1r01qorsvhu2d0d7s9il1r01qorsvhu2dg';
+
+async function fetchFinnhub(ticker, res){
   const resMap={
-    '5' :{interval:'5m', range:'5d'},
-    '15':{interval:'15m',range:'10d'},
-    '60':{interval:'1h', range:'60d'},
-    'D' :{interval:'1d', range:'2y'},
-    'W' :{interval:'1wk',range:'5y'},
+    '5' :'5',
+    '15':'15',
+    '60':'60',
+    'D' :'D',
+    'W' :'W',
   };
-  const cfg=resMap[res]||resMap['D'];
-  const base=`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${cfg.interval}&range=${cfg.range}&includePrePost=false`;
-  
-  // 複数プロキシを試す
-  const proxies=[
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(base)}`,
-    `https://corsproxy.io/?${encodeURIComponent(base)}`,
-    `https://proxy.cors.sh/${base}`,
-  ];
-  
-  let lastErr='';
-  for(const url of proxies){
-    try{
-      const r=await fetch(url,{headers:{'X-Requested-With':'XMLHttpRequest'}});
-      if(!r.ok){lastErr=`HTTP ${r.status}`;continue;}
-      const d=await r.json();
-      const chart=d?.chart?.result?.[0];
-      if(!chart){lastErr='データなし';continue;}
-      const ts=chart.timestamp;
-      const q=chart.indicators.quote[0];
-      if(!ts||!q){lastErr='データ形式エラー';continue;}
-      const candles=[];
-      for(let i=0;i<ts.length;i++){
-        if(q.close[i]==null) continue;
-        candles.push({
-          ts:ts[i]*1000,
-          open:q.open[i]||q.close[i],
-          high:q.high[i]||q.close[i],
-          low:q.low[i]||q.close[i],
-          close:q.close[i],
-          volume:q.volume[i]||0
-        });
-      }
-      if(candles.length) return candles;
-      lastErr='有効データなし';
-    }catch(e){lastErr=e.message;}
+  const r=resMap[res]||'D';
+  const now=Math.floor(Date.now()/1000);
+  // 期間設定
+  const rangeMap={'5':5,'15':10,'60':60,'D':730,'W':1825};
+  const days=rangeMap[res]||730;
+  const from=now-days*24*3600;
+  const url=`https://finnhub.io/api/v1/stock/candle?symbol=${ticker}&resolution=${r}&from=${from}&to=${now}&token=${FINNHUB_KEY}`;
+  const resp=await fetch(url);
+  if(!resp.ok) throw new Error(`Finnhub ${resp.status}`);
+  const d=await resp.json();
+  if(d.s==='no_data'||!d.t) throw new Error(`${ticker} — データなし`);
+  const candles=[];
+  for(let i=0;i<d.t.length;i++){
+    if(d.c[i]==null) continue;
+    candles.push({
+      ts:d.t[i]*1000,
+      open:d.o[i],
+      high:d.h[i],
+      low:d.l[i],
+      close:d.c[i],
+      volume:d.v[i]||0
+    });
   }
-  throw new Error(`${ticker} — ${lastErr}`);
+  if(!candles.length) throw new Error(`${ticker} — 有効データなし`);
+  return candles;
 }
 function calcVQ(cs,endIdx,win){
   const arr=cs.slice(Math.max(0,endIdx-win+1),endIdx+1);
@@ -603,7 +594,7 @@ function renderDetailSkeleton(sym, bp){
 async function fetchAndRender(sym, bp){
   document.getElementById('ov')?.classList.remove('hide');
   try{
-    candles=await fetchYahoo(sym,resolution);
+    candles=await fetchFinnhub(sym,resolution);
     buildSeries(candles);
     const n=candles.length;
     const price=priceS[n-1],first=priceS[0];
@@ -616,7 +607,14 @@ async function fetchAndRender(sym, bp){
     if(wi>=0){
       watchlist[wi].price=price.toFixed(2);
       watchlist[wi].chg=chg;
-      watchlist[wi].sig=c3&&c2?'full':c1&&c2?'prep':c2?'dry':c1?'warn':'none';
+      // VQ-5を最優先：c3達成は常にVQ-5状態として表示
+      watchlist[wi].sig=
+        c3&&c2?'full':   // 🟢 本シグナル（VQ-5+売り枯れ）
+        c3?'vq5':        // 🔴 VQ-5突破（売り枯れ待ち）
+        c1&&c2?'prep':   // 🟠 VQ-3先行+売り枯れ
+        c2?'dry':        // 🟣 売り枯れのみ
+        c1?'warn':       // 🟡 VQ-3上昇のみ
+        'none';
       localStorage.setItem('vq_watchlist',JSON.stringify(watchlist));
       renderWatchlist();
     }
@@ -702,7 +700,7 @@ async function fetchAndRender(sym, bp){
 
     drawMain(bp);drawVolume();drawDry();
     document.getElementById('sdot').className='sdot live';
-    document.getElementById('stxt').textContent=`LIVE — ${sym} [Yahoo Finance] ${resolution} ${new Date().toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin'})} Berlin`;
+    document.getElementById('stxt').textContent=`LIVE — ${sym} [Finnhub] ${resolution} ${new Date().toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin'})} Berlin`;
   }catch(e){
     document.getElementById('sdot').className='sdot err';
     document.getElementById('stxt').textContent='エラー: '+e.message;
