@@ -180,7 +180,7 @@ canvas{width:100%;display:block;}
     </div>
   </div>
   <div class="hdr-right">
-    <span class="api-badge" id="apiBadge" style="background:rgba(0,255,136,.15);border-color:rgba(0,255,136,.4);color:var(--green)">●FINNHUB</span>
+    <span class="api-badge" id="apiBadge" style="background:rgba(0,255,136,.15);border-color:rgba(0,255,136,.4);color:var(--green)">●12DATA</span>
     <button class="hdr-btn" onclick="doRefresh()">↻ 更新</button>
   </div>
 </div>
@@ -327,7 +327,7 @@ function applyKeyState(){
   const wrap=document.getElementById('apikeyWrap');
   const badge=document.getElementById('apiBadge');
   if(wrap) wrap.style.display='none';
-  if(badge){badge.textContent='●FINNHUB';badge.style.background='rgba(0,255,136,.15)';badge.style.borderColor='rgba(0,255,136,.4)';badge.style.color='var(--green)';}
+  if(badge){badge.textContent='●12DATA';badge.style.background='rgba(0,255,136,.15)';badge.style.borderColor='rgba(0,255,136,.4)';badge.style.color='var(--green)';}
 }
 
 // ─── AUTOCOMPLETE ─────────────────────────────────────────
@@ -460,37 +460,31 @@ async function fetchPolygon(ticker, res){
 }
 
 // ─── FETCH (Finnhub) ────────────────────────────────────
-const FINNHUB_KEY = 'd7s9il1r01qorsvhu2d0d7s9il1r01qorsvhu2dg';
+// ─── FETCH (Twelve Data) ─────────────────────────────────
+const TWELVEDATA_KEY = '216dcde1e35442cdbe0abd0fa2c9ffb7';
 
-async function fetchFinnhub(ticker, res){
-  const resMap={'5':'5','15':'15','60':'60','D':'D','W':'W'};
-  const r=resMap[res]||'D';
-  const now=Math.floor(Date.now()/1000);
-  const rangeMap={'5':5,'15':10,'60':60,'D':730,'W':1825};
-  const days=rangeMap[res]||730;
-  const from=now-days*24*3600;
-  const base=`https://finnhub.io/api/v1/stock/candle?symbol=${ticker}&resolution=${r}&from=${from}&to=${now}&token=${FINNHUB_KEY}`;
-  const proxies=[
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(base)}`,
-    `https://corsproxy.io/?${encodeURIComponent(base)}`,
-  ];
-  let lastErr='';
-  for(const url of proxies){
-    try{
-      const resp=await fetch(url);
-      if(!resp.ok){lastErr=`HTTP ${resp.status}`;continue;}
-      const d=await resp.json();
-      if(d.s==='no_data'||!d.t){lastErr='データなし';continue;}
-      const candles=[];
-      for(let i=0;i<d.t.length;i++){
-        if(d.c[i]==null) continue;
-        candles.push({ts:d.t[i]*1000,open:d.o[i],high:d.h[i],low:d.l[i],close:d.c[i],volume:d.v[i]||0});
-      }
-      if(candles.length) return candles;
-      lastErr='有効データなし';
-    }catch(e){lastErr=e.message;}
-  }
-  throw new Error(`${ticker} — ${lastErr}`);
+async function fetchTwelveData(ticker, res){
+  const intervalMap={'5':'5min','15':'15min','60':'1h','D':'1day','W':'1week'};
+  const interval=intervalMap[res]||'1day';
+  const outputsizeMap={'5':390,'15':200,'60':120,'D':500,'W':260};
+  const outputsize=outputsizeMap[res]||500;
+  // Twelve Data API（CORS対応・直接接続）
+  const url=`https://api.twelvedata.com/time_series?symbol=${ticker}&interval=${interval}&outputsize=${outputsize}&apikey=${TWELVEDATA_KEY}&format=JSON`;
+  const resp=await fetch(url);
+  if(!resp.ok) throw new Error(`Twelve Data ${resp.status}`);
+  const d=await resp.json();
+  if(d.status==='error') throw new Error(`${ticker} — ${d.message||'データなし'}`);
+  if(!d.values||!d.values.length) throw new Error(`${ticker} — データなし`);
+  // Twelve Dataは新しい順で返ってくるので逆順に
+  const candles=[...d.values].reverse().map(v=>({
+    ts: new Date(v.datetime).getTime(),
+    open: parseFloat(v.open),
+    high: parseFloat(v.high),
+    low:  parseFloat(v.low),
+    close:parseFloat(v.close),
+    volume:parseFloat(v.volume)||0
+  }));
+  return candles;
 }
 function calcVQ(cs,endIdx,win){
   const arr=cs.slice(Math.max(0,endIdx-win+1),endIdx+1);
@@ -589,7 +583,7 @@ function renderDetailSkeleton(sym, bp){
 async function fetchAndRender(sym, bp){
   document.getElementById('ov')?.classList.remove('hide');
   try{
-    candles=await fetchFinnhub(sym,resolution);
+    candles=await fetchTwelveData(sym,resolution);
     buildSeries(candles);
     const n=candles.length;
     const price=priceS[n-1],first=priceS[0];
@@ -695,7 +689,7 @@ async function fetchAndRender(sym, bp){
 
     drawMain(bp);drawVolume();drawDry();
     document.getElementById('sdot').className='sdot live';
-    document.getElementById('stxt').textContent=`LIVE — ${sym} [Finnhub] ${resolution} ${new Date().toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin'})} Berlin`;
+    document.getElementById('stxt').textContent=`LIVE — ${sym} [Twelve Data] ${resolution} ${new Date().toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin'})} Berlin`;
   }catch(e){
     document.getElementById('sdot').className='sdot err';
     document.getElementById('stxt').textContent='エラー: '+e.message;
