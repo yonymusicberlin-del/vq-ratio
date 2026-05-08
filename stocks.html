@@ -527,12 +527,10 @@ const TWELVEDATA_KEY = '216dcde1e35442cdbe0abd0fa2c9ffb7';
 async function fetchTwelveData(ticker, res){
   const intervalMap={'5':'5min','15':'15min','60':'1h','D':'1day','W':'1week'};
   const interval=intervalMap[res]||'1day';
-  // 時間軸別データ量：5分=2日(~390本=時間外含む)、15分=3日、1時間=20日、日足=500日、週足=260週
-  const outputsizeMap={'5':390,'15':200,'60':120,'D':500,'W':260};
+  // 時間軸別データ量：5分=2日(~156本)、15分=3日(~117本)、1時間=20日、日足=500日、週足=260週
+  const outputsizeMap={'5':156,'15':117,'60':120,'D':500,'W':260};
   const outputsize=outputsizeMap[res]||500;
-  // 時間外取引対応（プレマーケット・アフターマーケット含む）
-  const extended=['5','15','60'].includes(res)?'&prepost=1':'';
-  const url=`https://api.twelvedata.com/time_series?symbol=${ticker}&interval=${interval}&outputsize=${outputsize}&apikey=${TWELVEDATA_KEY}&format=JSON${extended}`;
+  const url=`https://api.twelvedata.com/time_series?symbol=${ticker}&interval=${interval}&outputsize=${outputsize}&apikey=${TWELVEDATA_KEY}&format=JSON`;
   const resp=await fetch(url);
   if(!resp.ok) throw new Error(`Twelve Data ${resp.status}`);
   const d=await resp.json();
