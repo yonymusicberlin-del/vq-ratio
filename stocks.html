@@ -915,7 +915,7 @@ function drawVolume(){
   const H=100;
   cv.width=W*dpr;cv.height=H*dpr;cv.style.width=W+'px';cv.style.height=H+'px';
   const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
-  const P={t:6,r:62,b:18,l:36},cw=W-P.l-P.r,ch=H-P.t-P.b;
+  const cw=W-P.l-P.r,ch=H-P.t-P.b;
   const n=candles.length;if(n<2)return;
   const vMax=Math.max(...volS)*1.05||1;
   const xs=cw/(n-1),xOf=i=>P.l+i*xs,yV=v=>P.t+ch*(1-v/vMax);
@@ -948,7 +948,7 @@ function drawDry(){
   const H=100;
   cv.width=W*dpr;cv.height=H*dpr;cv.style.width=W+'px';cv.style.height=H+'px';
   const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
-  const P={t:8,r:80,b:18,l:36},cw=W-P.l-P.r,ch=H-P.t-P.b;
+  const cw=W-P.l-P.r,ch=H-P.t-P.b;
   const n=candles.length;if(n<2)return;
   const vD=dryS.filter(v=>isFinite(v)&&v>=0);
   const dMax=vD.length?Math.min(Math.max(...vD,2),4):2;
