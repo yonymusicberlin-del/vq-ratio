@@ -337,6 +337,17 @@ function attachScrollSync(){
       el.removeEventListener('scroll',el._syncFn||null);
       el._syncFn=()=>syncScroll(id);
       el.addEventListener('scroll',el._syncFn);
+      // マウスホイールで横スクロール
+      el.removeEventListener('wheel',el._wheelFn||null);
+      el._wheelFn=(e)=>{
+        e.preventDefault();
+        const delta=e.deltaY||e.deltaX;
+        ['mainScroll','volScroll','dryScroll'].forEach(sid=>{
+          const sel=document.getElementById(sid);
+          if(sel) sel.scrollLeft+=delta*1.5;
+        });
+      };
+      el.addEventListener('wheel',el._wheelFn,{passive:false});
     }
   });
 }
@@ -887,8 +898,8 @@ function drawMain(bp){
   const numLabels=Math.max(8, Math.round(10*zoomLevel));
   for(let i=0;i<=numLabels;i++){
     const idx=Math.round(i*(n-1)/numLabels);
-    const intra=['5','15','60'].includes(resolution);
-    const lbl=intra?fmtDateTime(candles[idx].ts):fmtDateTime(candles[idx].ts);
+    if(idx===n-1) continue; // 右端は現在時刻ラベルで上書きするのでスキップ
+    const lbl=fmtDateTime(candles[idx].ts);
     const x=xOf(idx);
     // グリッドライン
     ctx.strokeStyle='rgba(90,122,154,.08)';ctx.lineWidth=1;
@@ -896,7 +907,7 @@ function drawMain(bp){
     ctx.fillStyle='rgba(90,122,154,.7)';
     ctx.fillText(lbl,x,P.t+ch+14);
   }
-  // ── 右端：現在時刻ラベル ──
+  // ── 右端：現在時刻ラベル（ベルリン時間）──
   const nowStr=new Date().toLocaleString('de-DE',{timeZone:'Europe/Berlin',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
   const rx=xOf(n-1);
   ctx.fillStyle='rgba(0,170,255,.9)';ctx.font=`bold 9px 'Share Tech Mono'`;ctx.textAlign='right';
@@ -915,8 +926,7 @@ function drawVolume(){
   const H=100;
   cv.width=W*dpr;cv.height=H*dpr;cv.style.width=W+'px';cv.style.height=H+'px';
   const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
-  const P={t:6,r:62,b:18,l:36},cw=W-P.l-P.r,ch=H-P.t-P.b;
-  const n=candles.length;if(n<2)return;
+  const cw=W-P.l-P.r,ch=H-P.t-P.b;
   const vMax=Math.max(...volS)*1.05||1;
   const xs=cw/(n-1),xOf=i=>P.l+i*xs,yV=v=>P.t+ch*(1-v/vMax);
   ctx.clearRect(0,0,W,H);
@@ -948,8 +958,7 @@ function drawDry(){
   const H=100;
   cv.width=W*dpr;cv.height=H*dpr;cv.style.width=W+'px';cv.style.height=H+'px';
   const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
-  const P={t:8,r:80,b:18,l:36},cw=W-P.l-P.r,ch=H-P.t-P.b;
-  const n=candles.length;if(n<2)return;
+  const cw=W-P.l-P.r,ch=H-P.t-P.b;
   const vD=dryS.filter(v=>isFinite(v)&&v>=0);
   const dMax=vD.length?Math.min(Math.max(...vD,2),4):2;
   const xs=cw/(n-1),xOf=i=>P.l+i*xs,yD=d=>P.t+ch*(1-Math.min(d,dMax)/dMax);
