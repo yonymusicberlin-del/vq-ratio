@@ -527,11 +527,12 @@ const TWELVEDATA_KEY = '216dcde1e35442cdbe0abd0fa2c9ffb7';
 async function fetchTwelveData(ticker, res){
   const intervalMap={'5':'5min','15':'15min','60':'1h','D':'1day','W':'1week'};
   const interval=intervalMap[res]||'1day';
-  // 時間軸別データ量：5分=2日(~156本)、15分=3日(~117本)、1時間=20日、日足=500日、週足=260週
-  const outputsizeMap={'5':156,'15':117,'60':120,'D':500,'W':260};
+  // 時間軸別データ量：5分=2日(~390本=時間外含む)、15分=3日、1時間=20日、日足=500日、週足=260週
+  const outputsizeMap={'5':390,'15':200,'60':120,'D':500,'W':260};
   const outputsize=outputsizeMap[res]||500;
-  // Twelve Data API（CORS対応・直接接続）
-  const url=`https://api.twelvedata.com/time_series?symbol=${ticker}&interval=${interval}&outputsize=${outputsize}&apikey=${TWELVEDATA_KEY}&format=JSON`;
+  // 時間外取引対応（プレマーケット・アフターマーケット含む）
+  const extended=['5','15','60'].includes(res)?'&prepost=1':'';
+  const url=`https://api.twelvedata.com/time_series?symbol=${ticker}&interval=${interval}&outputsize=${outputsize}&apikey=${TWELVEDATA_KEY}&format=JSON${extended}`;
   const resp=await fetch(url);
   if(!resp.ok) throw new Error(`Twelve Data ${resp.status}`);
   const d=await resp.json();
@@ -858,8 +859,7 @@ function drawMain(bp){
       if(v>=TH.vq3&&(vq3S[i-1]||0)<TH.vq3&&dryS[i]<=TH.dry){
         const x=xOf(i),y=yP(priceS[i]);
         ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fillStyle='rgba(255,208,0,.85)';ctx.fill();
-        const isIntra=['5','15','60'].includes(resolution);
-        const lbl=isIntra?fmtTime(candles[i].ts):fmtDateTime(candles[i].ts);
+        const lbl=fmtDateTime(candles[i].ts);
         ctx.fillStyle='rgba(255,208,0,.9)';ctx.font=`bold 10px 'Share Tech Mono'`;ctx.textAlign='center';
         ctx.fillText(lbl,x,y-10);
       }
@@ -873,8 +873,7 @@ function drawMain(bp){
       if(v>=TH.vq5&&(vq5S[i-1]||0)<TH.vq5&&dryS[i]<=TH.dry){
         const x=xOf(i),y=yP(priceS[i]);
         ctx.beginPath();ctx.arc(x,y,6,0,Math.PI*2);ctx.fillStyle='rgba(255,58,58,.9)';ctx.fill();
-        const isIntra2=['5','15','60'].includes(resolution);
-        const lbl2=isIntra2?fmtTime(candles[i].ts):fmtDateTime(candles[i].ts);
+        const lbl2=fmtDateTime(candles[i].ts);
         ctx.fillStyle='rgba(255,100,100,.95)';ctx.font=`bold 10px 'Share Tech Mono'`;ctx.textAlign='center';
         ctx.fillText(lbl2,x,y+18);
       }
