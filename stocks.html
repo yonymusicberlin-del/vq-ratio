@@ -295,7 +295,13 @@ function fmtDate(ts){
   return parts[0]+'/'+parts[1];
 }
 function fmtDateTime(ts){
-  return fmtDate(ts)+' '+fmtTime(ts);
+  const d=new Date(ts);
+  const date=d.toLocaleDateString('en-US',{timeZone:'Europe/Berlin',month:'numeric',day:'numeric'}).split('/');
+  const time=d.toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit'});
+  // イントラデイは時刻のみ、日足以上は日付のみ
+  const intra=['5','15','60'].includes(resolution);
+  if(intra) return date[0]+'/'+date[1]+' '+time;
+  return date[0]+'/'+date[1];
 }
 
 let candles=[], vq3S=[], vq5S=[], dryS=[], priceS=[], volS=[], volMA=[];
@@ -337,6 +343,17 @@ function attachScrollSync(){
       el.removeEventListener('scroll',el._syncFn||null);
       el._syncFn=()=>syncScroll(id);
       el.addEventListener('scroll',el._syncFn);
+      // マウスホイールで横スクロール
+      el.removeEventListener('wheel',el._wheelFn||null);
+      el._wheelFn=(e)=>{
+        e.preventDefault();
+        const delta=e.deltaY||e.deltaX;
+        ['mainScroll','volScroll','dryScroll'].forEach(sid=>{
+          const sel=document.getElementById(sid);
+          if(sel) sel.scrollLeft+=delta*1.5;
+        });
+      };
+      el.addEventListener('wheel',el._wheelFn,{passive:false});
     }
   });
 }
