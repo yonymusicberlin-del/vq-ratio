@@ -80,7 +80,17 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 .leg.off{opacity:.22;text-decoration:line-through;}
 .leg-line{width:14px;height:2px;border-radius:1px;}
 .leg-dot{width:8px;height:8px;border-radius:50%;}
-canvas{width:100%;display:block;}
+canvas{display:block;}
+.chart-scroll{overflow-x:auto;overflow-y:hidden;cursor:grab;}
+.chart-scroll:active{cursor:grabbing;}
+.chart-scroll::-webkit-scrollbar{height:5px;}
+.chart-scroll::-webkit-scrollbar-track{background:var(--surface);}
+.chart-scroll::-webkit-scrollbar-thumb{background:var(--dim);border-radius:3px;}
+.chart-scroll::-webkit-scrollbar-thumb:hover{background:var(--text2);}
+/* zoom controls */
+.zoom-btns{display:flex;gap:4px;align-items:center;}
+.zbtn{background:none;border:1px solid var(--border);color:var(--dim);font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:4px;cursor:pointer;}
+.zbtn:active{border-color:var(--green);color:var(--green);}
 
 .sbar{display:flex;align-items:center;gap:7px;padding:6px 12px;font-size:8px;color:var(--dim);font-family:var(--mono);border-top:1px solid var(--border);}
 .sdot{width:5px;height:5px;border-radius:50%;background:var(--dim);flex-shrink:0;}
@@ -196,14 +206,21 @@ canvas{width:100%;display:block;}
   </div>
   <div class="chart-hdr">
     <div class="chart-title">VQ-3 / VQ-5 / BTC価格</div>
-    <div class="legend">
-      <div class="leg off" id="leg-vq3" onclick="toggleVQ3()" title="クリックでON/OFF" style="cursor:pointer;"><div class="leg-line" style="background:var(--yellow)"></div>VQ-3 先行</div>
-      <div class="leg"><div class="leg-line" style="background:var(--orange)"></div>VQ-5 本</div>
-      <div class="leg"><div class="leg-line" style="background:var(--blue)"></div>価格</div>
-      <div class="leg"><div class="leg-dot" style="background:var(--red)"></div>シグナル</div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <div class="zoom-btns">
+        <button class="zbtn" onclick="zoomChart(-1)">－</button>
+        <button class="zbtn" onclick="zoomChart(1)">＋</button>
+        <button class="zbtn" onclick="zoomChart(0)" style="font-size:9px;padding:2px 6px;">全</button>
+      </div>
+      <div class="legend">
+        <div class="leg off" id="leg-vq3" onclick="toggleVQ3()" title="クリックでON/OFF" style="cursor:pointer;"><div class="leg-line" style="background:var(--yellow)"></div>VQ-3 先行</div>
+        <div class="leg"><div class="leg-line" style="background:var(--orange)"></div>VQ-5 本</div>
+        <div class="leg"><div class="leg-line" style="background:var(--blue)"></div>価格</div>
+        <div class="leg"><div class="leg-dot" style="background:var(--red)"></div>シグナル</div>
+      </div>
     </div>
   </div>
-  <canvas id="mc"></canvas>
+  <div class="chart-scroll" id="mainScroll"><canvas id="mc"></canvas></div>
   <div class="sbar">
     <div class="sdot" id="sdot"></div>
     <span id="stxt">初期化中...</span>
@@ -220,7 +237,7 @@ canvas{width:100%;display:block;}
       <div class="leg"><div class="leg-dot" style="background:rgba(255,208,0,.7);width:10px;height:4px;border-radius:2px"></div>平均超え</div>
     </div>
   </div>
-  <canvas id="vc"></canvas>
+  <div class="chart-scroll" id="volScroll"><canvas id="vc"></canvas></div>
 </div>
 <div class="chart-wrap">
   <div class="chart-hdr">
@@ -230,7 +247,7 @@ canvas{width:100%;display:block;}
       <div class="leg"><div class="leg-dot" style="background:var(--red)"></div>シグナル</div>
     </div>
   </div>
-  <canvas id="dc"></canvas>
+  <div class="chart-scroll" id="dryScroll"><canvas id="dc"></canvas></div>
 </div>
 
 <!-- Signal log -->
@@ -248,6 +265,7 @@ canvas{width:100%;display:block;}
 let sym='BTCUSDT', symLabel='BTC', interval='5m', limit=200;
 let candles=[], vq3S=[], vq5S=[], dryS=[], priceS=[], volS=[], volMA=[];
 let sigLog=[], lastSigState='', autoTimer=null;
+let zoomLevel = 1.0; // 1.0=全体, 最大8x
 
 const TH={vq3:2.5, dry:0.5, vq5:3.0};
 
@@ -258,6 +276,23 @@ function toggleVQ3(){
   const el=document.getElementById('leg-vq3');
   if(el) el.classList.toggle('off',!layers.vq3);
   if(candles.length){drawMain();drawVolume();drawDry();}
+}
+
+// ── ズーム ──
+function zoomChart(dir){
+  if(dir===0){zoomLevel=1.0;}
+  else if(dir>0){zoomLevel=Math.min(zoomLevel*1.5,8);}
+  else{zoomLevel=Math.max(zoomLevel/1.5,1.0);}
+  if(candles.length){drawMain();drawVolume();drawDry();}
+  // 拡大後は右端（最新）にスクロール
+  if(dir!==0){
+    setTimeout(()=>{
+      ['mainScroll','volScroll','dryScroll'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el) el.scrollLeft=el.scrollWidth;
+      });
+    },50);
+  }
 }
 
 // ── Fetch ──
@@ -431,21 +466,26 @@ function clearLog(){sigLog=[];lastSigState='';renderLog();}
 function drawMain(){
   const cv=document.getElementById('mc');
   const dpr=window.devicePixelRatio||1;
-  const W=cv.parentElement.offsetWidth;
+  const containerW=cv.parentElement.offsetWidth;
+  const n=candles.length;if(n<2)return;
+
+  // ズーム: 1本あたりのpx幅
+  const basePxPerBar=Math.max(4,containerW/n);
+  const pxPerBar=basePxPerBar*zoomLevel;
+  const PAD={top:10,right:52,bottom:22,left:36};
+  const W=Math.max(containerW, PAD.left+PAD.right+pxPerBar*n);
   const H=Math.min(280,window.innerHeight*0.34);
   cv.width=W*dpr;cv.height=H*dpr;
   cv.style.width=W+'px';cv.style.height=H+'px';
   const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
 
-  const PAD={top:10,right:52,bottom:22,left:36};
   const cw=W-PAD.left-PAD.right,ch=H-PAD.top-PAD.bottom;
-  const n=candles.length;if(n<2)return;
+  const xStep=cw/(n-1);
+  const xOf=i=>PAD.left+i*xStep;
 
   // VQ Y (left)
   const allVQ=[...vq3S,...vq5S].filter(v=>v!==null&&v!==undefined&&isFinite(v)&&v>0);
   const vqMax=allVQ.length?Math.min(Math.max(...allVQ,4),15):15;
-  const xStep=cw/(n-1);
-  const xOf=i=>PAD.left+i*xStep;
   const yVQ=v=>PAD.top+ch*(1-v/vqMax);
 
   // Price Y (right)
@@ -566,16 +606,19 @@ function drawMain(){
 function drawVolume(){
   const cv=document.getElementById('vc');
   const dpr=window.devicePixelRatio||1;
-  const W=cv.parentElement.offsetWidth;
+  const containerW=cv.parentElement.offsetWidth;
+  const n=candles.length;if(n<2)return;
+
+  const basePxPerBar=Math.max(4,containerW/n);
+  const pxPerBar=basePxPerBar*zoomLevel;
+  const PAD={top:6,right:52,bottom:18,left:36};
+  const W=Math.max(containerW,PAD.left+PAD.right+pxPerBar*n);
   const H=90;
   cv.width=W*dpr;cv.height=H*dpr;
   cv.style.width=W+'px';cv.style.height=H+'px';
   const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
 
-  const PAD={top:6,right:52,bottom:18,left:36};
   const cw=W-PAD.left-PAD.right,ch=H-PAD.top-PAD.bottom;
-  const n=candles.length;if(n<2)return;
-
   const vMax=Math.max(...volS)*1.05||1;
   const xStep=cw/(n-1);
   const xOf=i=>PAD.left+i*xStep;
@@ -612,9 +655,10 @@ function drawVolume(){
   ctx.fillText(fv2(vMax/2),PAD.left+cw+3,PAD.top+ch/2+3);
 
   // X axis
+  const numLabels=Math.max(4,Math.round(5*zoomLevel));
   ctx.textAlign='center';ctx.fillStyle='rgba(90,122,154,.4)';
-  for(let i=0;i<=4;i++){
-    const idx=Math.round(i*(n-1)/4);
+  for(let i=0;i<=numLabels;i++){
+    const idx=Math.round(i*(n-1)/numLabels);
     const d=new Date(candles[idx].ts);
     ctx.fillText(d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'),xOf(idx),PAD.top+ch+12);
   }
@@ -624,16 +668,19 @@ function drawVolume(){
 function drawDry(){
   const cv=document.getElementById('dc');
   const dpr=window.devicePixelRatio||1;
-  const W=cv.parentElement.offsetWidth;
+  const containerW=cv.parentElement.offsetWidth;
+  const n=candles.length;if(n<2)return;
+
+  const basePxPerBar=Math.max(4,containerW/n);
+  const pxPerBar=basePxPerBar*zoomLevel;
+  const PAD={top:8,right:80,bottom:18,left:36};
+  const W=Math.max(containerW,PAD.left+PAD.right+pxPerBar*n);
   const H=100;
   cv.width=W*dpr;cv.height=H*dpr;
   cv.style.width=W+'px';cv.style.height=H+'px';
   const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
 
-  const PAD={top:8,right:80,bottom:18,left:36};
   const cw=W-PAD.left-PAD.right,ch=H-PAD.top-PAD.bottom;
-  const n=candles.length;if(n<2)return;
-
   const validDry=dryS.filter(v=>isFinite(v)&&v>=0);
   const dMax=validDry.length?Math.min(Math.max(...validDry,2),4):2;
   const xStep=cw/(n-1);
@@ -704,9 +751,10 @@ function drawDry(){
   });
 
   // X axis
+  const numLabels=Math.max(4,Math.round(5*zoomLevel));
   ctx.textAlign='center';ctx.fillStyle='rgba(90,122,154,.4)';ctx.font=`8px 'Share Tech Mono'`;
-  for(let i=0;i<=4;i++){
-    const idx=Math.round(i*(n-1)/4);
+  for(let i=0;i<=numLabels;i++){
+    const idx=Math.round(i*(n-1)/numLabels);
     const d=new Date(candles[idx].ts);
     ctx.fillText(d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'),xOf(idx),PAD.top+ch+12);
   }
@@ -795,12 +843,12 @@ async function updateData(){
 function setCoin(el){
   sym=el.dataset.sym;symLabel=el.dataset.label;
   document.querySelectorAll('.coin').forEach(c=>c.classList.remove('on'));
-  el.classList.add('on');sigLog=[];lastSigState='';renderLog();updateData();
+  el.classList.add('on');sigLog=[];lastSigState='';zoomLevel=1.0;renderLog();updateData();
 }
 function setIv(el){
   interval=el.dataset.iv;limit=+el.dataset.limit;
   document.querySelectorAll('.ivbtn').forEach(b=>b.classList.remove('on'));
-  el.classList.add('on');sigLog=[];lastSigState='';renderLog();updateData();
+  el.classList.add('on');sigLog=[];lastSigState='';zoomLevel=1.0;renderLog();updateData();
 }
 function doRefresh(){
   const b=document.getElementById('rfBtn');
