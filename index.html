@@ -256,8 +256,12 @@ canvas{display:block;}
   <div class="shared-scroll" id="sharedScroll">
     <canvas id="mc" style="display:block;"></canvas>
     <div class="sub-chart">
-      <div class="sub-chart-lbl">出来高 / 20MA / 先週</div>
+      <div class="sub-chart-lbl">出来高 / 20MA（今週）</div>
       <canvas id="vc" style="display:block;"></canvas>
+    </div>
+    <div class="sub-chart" id="lwChartWrap">
+      <div class="sub-chart-lbl" style="color:var(--cyan)">先週同時間帯 出来高</div>
+      <canvas id="lwc" style="display:block;"></canvas>
     </div>
     <div class="sub-chart">
       <div class="sub-chart-lbl">売り枯れ率</div>
@@ -298,7 +302,7 @@ const TH={vq3:2.5, dry:0.5, vq5:3.0};
 const layers={vq3:false, lw:true};
 
 const PL=52, PR=80;
-const H_VQ=260, H_VOL=120, H_DRY=90;
+const H_VQ=260, H_VOL=100, H_LW=80, H_DRY=90;
 
 function toggleVQ3(){
   layers.vq3=!layers.vq3;
@@ -574,27 +578,73 @@ function drawAll(){
     volMA.forEach((v,i)=>{if(!v)return;const x=xOf(i),y=yV(v);sm?ctx.lineTo(x,y):ctx.moveTo(x,y);sm=true;});
     ctx.strokeStyle='rgba(255,140,0,.9)'; ctx.lineWidth=1.2; ctx.stroke();
 
-    // ★ 先週出来高ライン（破線シアン）
-    if(layers.lw&&lastWeekVolS.length>=2){
-      const lwN=Math.min(lastWeekVolS.length,n);
-      const offset=n-lwN; // 長さが違う場合に右揃え
-      ctx.beginPath(); let slw=false;
-      lastWeekVolS.forEach((v,i)=>{
-        if(!isFinite(v)||v<=0)return;
-        const idx=offset+i;
-        const x=xOf(Math.min(idx,n-1));
-        const y=yV(v);
-        slw?ctx.lineTo(x,y):ctx.moveTo(x,y); slw=true;
-      });
-      ctx.strokeStyle='rgba(0,229,255,.7)'; ctx.lineWidth=1.1;
-      ctx.setLineDash([4,4]); ctx.stroke(); ctx.setLineDash([]);
-    }
+    // 先週出来高は別チャートに描画
 
     const fv=v=>v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':v.toFixed(0);
     ctx.textAlign='left'; ctx.font=`9px 'Share Tech Mono'`; ctx.fillStyle='rgba(140,170,200,.6)';
     ctx.fillText(fv(vMax),PL+(W-PL-PR)+4,8+8);
     ctx.fillText(fv(vMax*0.5),PL+(W-PL-PR)+4,8+ch*0.5+3);
     drawTimeAxis(ctx,8,ch,W,xOf,n);
+  }
+
+  // ── 先週出来高チャート ──
+  {
+    const cv=document.getElementById('lwc');
+    if(cv&&layers.lw&&lastWeekVolS.length>=2){
+      const lwN=Math.min(lastWeekVolS.length,n);
+      const H=H_LW;
+      cv.width=W*dpr; cv.height=H*dpr;
+      cv.style.width=W+'px'; cv.style.height=H+'px';
+      const ctx=cv.getContext('2d'); ctx.scale(dpr,dpr);
+      const ch=H-8-20;
+      const lwVols=lastWeekVolS.slice(0,lwN);
+      const sorted=[...lwVols].filter(v=>v>0).sort((a,b)=>a-b);
+      const vMax=(sorted[Math.floor(sorted.length*0.95)]||1)*1.15;
+      const sqrtMax=Math.sqrt(vMax);
+      const yV=v=>8+ch*(1-Math.sqrt(Math.min(v,vMax))/sqrtMax);
+      ctx.clearRect(0,0,W,H);
+      // グリッド
+      ctx.setLineDash([2,4]);
+      ctx.strokeStyle='rgba(0,229,255,.08)'; ctx.lineWidth=1;
+      [0.5,1.0].forEach(r=>{const y=yV(vMax*r);ctx.beginPath();ctx.moveTo(PL,y);ctx.lineTo(PL+(W-PL-PR),y);ctx.stroke();});
+      ctx.setLineDash([]);
+      // バー
+      const bw=Math.max(2,xStep*0.75);
+      const offset=n-lwN;
+      lwVols.forEach((v,i)=>{
+        const lc=lastWeekCandles[i];
+        const bull=lc?(lc.close>=lc.open):true;
+        ctx.fillStyle=bull?'rgba(0,229,255,.5)':'rgba(168,85,247,.5)';
+        const yTop=yV(v),barH=Math.max(2,8+ch-yTop);
+        ctx.fillRect(xOf(offset+i)-bw/2,yTop,bw,barH);
+      });
+      // 20MA
+      const lwMA=lwVols.map((_,i)=>{
+        const w=lwVols.slice(Math.max(0,i-19),i+1);
+        return w.reduce((s,v)=>s+v,0)/w.length;
+      });
+      ctx.beginPath(); let sm2=false;
+      lwMA.forEach((v,i)=>{
+        const x=xOf(offset+i),y=yV(v);
+        sm2?ctx.lineTo(x,y):ctx.moveTo(x,y); sm2=true;
+      });
+      ctx.strokeStyle='rgba(0,229,255,.8)'; ctx.lineWidth=1.2; ctx.stroke();
+      // Y軸
+      const fv=v=>v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':v.toFixed(0);
+      ctx.textAlign='left'; ctx.font=`9px 'Share Tech Mono'`; ctx.fillStyle='rgba(0,229,255,.5)';
+      ctx.fillText(fv(vMax),PL+(W-PL-PR)+4,8+8);
+      drawTimeAxis(ctx,8,ch,W,xOf,n);
+    } else if(cv){
+      // 先週データなし or 非表示
+      const H=H_LW;
+      cv.width=W*dpr; cv.height=H*dpr;
+      cv.style.width=W+'px'; cv.style.height=H+'px';
+      const ctx=cv.getContext('2d'); ctx.scale(dpr,dpr);
+      ctx.clearRect(0,0,W,H);
+      ctx.fillStyle='rgba(90,122,154,.3)'; ctx.font=`9px 'Share Tech Mono'`;
+      ctx.textAlign='center';
+      ctx.fillText(layers.lw?'先週データ取得中...':'先週データ非表示',W/2,H/2);
+    }
   }
 
   // ── 売り枯れ率チャート ──
