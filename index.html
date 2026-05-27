@@ -882,21 +882,27 @@ function sendNotif(title,body,urgency='normal'){
 async function updateData(){
   setStatus('ld');
   document.getElementById('ov').classList.remove('hide');
+  // ★ メインデータのみ先に取得・表示
   try{
-    const [curr,lw]=await Promise.allSettled([
-      fetchKlines(),
-      fetchLastWeekKlines()
-    ]);
-    if(curr.status==='rejected') throw curr.reason;
-    candles=curr.value;
+    candles=await fetchKlines();
     buildSeries(candles);
-    lastWeekCandles=(lw.status==='fulfilled'&&lw.value.length>0)?lw.value:[];
-    updateWkBadge();
     evalSignal(); drawAll(); setStatus('live');
   }catch(e){
     setStatus('error',e.message);
   }finally{
     document.getElementById('ov').classList.add('hide');
+  }
+  // ★ 先週データはバックグラウンドで取得（メイン表示をブロックしない）
+  try{
+    const lw=await fetchLastWeekKlines();
+    if(lw&&lw.length>0){
+      lastWeekCandles=lw;
+      updateWkBadge();
+      if(candles.length) drawAll();
+    }
+  }catch(e){
+    lastWeekCandles=[];
+    updateWkBadge();
   }
 }
 
