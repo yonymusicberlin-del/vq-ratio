@@ -327,10 +327,20 @@ function zoomChart(dir){
 }
 
 // ─── 現在のローソク足取得 ───
+// ─── タイムアウト付きfetch ───
+async function fetchWithTimeout(url, ms=8000){
+  const ctrl=new AbortController();
+  const tid=setTimeout(()=>ctrl.abort(),ms);
+  try{
+    const r=await fetch(url,{signal:ctrl.signal});
+    clearTimeout(tid); return r;
+  }catch(e){clearTimeout(tid); throw e;}
+}
+
 async function fetchKlines(){
   const ivMap={'5m':'5','15m':'15','1h':'60','4h':'240','1d':'D'};
   const url=`https://api.bybit.com/v5/market/kline?category=spot&symbol=${sym}&interval=${ivMap[interval]||'5'}&limit=${limit}`;
-  const r=await fetch(url);
+  const r=await fetchWithTimeout(url,10000);
   if(!r.ok) throw new Error(`Bybit ${r.status}`);
   const d=await r.json();
   if(d.retCode!==0) throw new Error(d.retMsg);
@@ -341,11 +351,11 @@ async function fetchKlines(){
 async function fetchLastWeekKlines(){
   const ivMap={'5m':'5','15m':'15','1h':'60','4h':'240','1d':'D'};
   const ivMs={'5m':5*60000,'15m':15*60000,'1h':3600000,'4h':4*3600000,'1d':86400000};
-  const ms=ivMs[interval]||300000;
+  const ivMs2=ivMs[interval]||300000;
   const endTime=Date.now()-7*24*3600000;
-  const startTime=endTime-limit*ms;
+  const startTime=endTime-limit*ivMs2;
   const url=`https://api.bybit.com/v5/market/kline?category=spot&symbol=${sym}&interval=${ivMap[interval]||'5'}&start=${startTime}&end=${endTime}&limit=${limit}`;
-  const r=await fetch(url);
+  const r=await fetchWithTimeout(url,10000);
   if(!r.ok) throw new Error(`Bybit LW ${r.status}`);
   const d=await r.json();
   if(d.retCode!==0) throw new Error(d.retMsg);
@@ -873,7 +883,6 @@ async function updateData(){
   setStatus('ld');
   document.getElementById('ov').classList.remove('hide');
   try{
-    // 現在のデータと先週データを並列取得
     const [curr,lw]=await Promise.allSettled([
       fetchKlines(),
       fetchLastWeekKlines()
@@ -881,16 +890,14 @@ async function updateData(){
     if(curr.status==='rejected') throw curr.reason;
     candles=curr.value;
     buildSeries(candles);
-    if(lw.status==='fulfilled'){
-      lastWeekCandles=lw.value;
-    } else {
-      lastWeekCandles=[];
-      console.warn('先週データ取得失敗:',lw.reason);
-    }
+    lastWeekCandles=(lw.status==='fulfilled'&&lw.value.length>0)?lw.value:[];
     updateWkBadge();
     evalSignal(); drawAll(); setStatus('live');
-  }catch(e){setStatus('error',e.message);}
-  document.getElementById('ov').classList.add('hide');
+  }catch(e){
+    setStatus('error',e.message);
+  }finally{
+    document.getElementById('ov').classList.add('hide');
+  }
 }
 
 function setCoin(el){
