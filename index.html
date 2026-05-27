@@ -340,7 +340,7 @@ async function fetchWithTimeout(url, ms=8000){
 async function fetchKlines(){
   const ivMap={'5m':'5','15m':'15','1h':'60','4h':'240','1d':'D'};
   const url=`https://api.bybit.com/v5/market/kline?category=spot&symbol=${sym}&interval=${ivMap[interval]||'5'}&limit=${limit}`;
-  const r=await fetchWithTimeout(url,10000);
+  const r=await fetch(url);
   if(!r.ok) throw new Error(`Bybit ${r.status}`);
   const d=await r.json();
   if(d.retCode!==0) throw new Error(d.retMsg);
